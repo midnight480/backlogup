@@ -2,5 +2,5 @@ import React from "react";
 import { Navigate } from "react-router-dom";
 
 export const Index: React.FC = (props) => {
-  return <Navigate to={"/issues"} />;
+  return <Navigate to={"/dashboard"} />;
 };
