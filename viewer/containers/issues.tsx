@@ -5,9 +5,11 @@ import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { observer } from "mobx-react-lite";
 import dayjs from 'dayjs';
 import { Link } from "react-router-dom";
-import { Avatar, Box, Chip, Paper, TextField } from "@mui/material";
+import { Avatar, Box, Chip, Paper, Tab, Tabs, TextField } from "@mui/material";
+import { Wikis } from "./wikis";
+import { Documents } from "./documents";
 
-export const Issues: React.FC = observer((props) => {
+const IssueList: React.FC = observer(() => {
   const { pageStore } = useStore();
 
   useDidMount(() => {
@@ -49,9 +51,9 @@ export const Issues: React.FC = observer((props) => {
             src={`/assets/users/${params.row?.assignee?.id}/icon`}
             sx={{ width: 24, height: 24, fontSize: 12, mr: 0.5 }}
           />
-            {params.row?.assignee?.name}
+          {params.row?.assignee?.name}
         </Box>
-        ) : params.row?.assignee?.name
+      ) : params.row?.assignee?.name
     },
     {
       field: "状態",
@@ -73,7 +75,7 @@ export const Issues: React.FC = observer((props) => {
       width: 72,
       valueGetter: (params) => params.row?.priority?.name,
       renderCell: (params) => {
-        switch(params.row?.priority?.name) {
+        switch (params.row?.priority?.name) {
           case "高":
             return <span style={{ color: "#f42858" }}>⬆</span>;
           case "中":
@@ -98,13 +100,13 @@ export const Issues: React.FC = observer((props) => {
   ];
 
   return (
-    <Box p={4} style={{ backgroundColor: "#f0f0f0", minHeight: "100vh" }}>
+    <>
       <Box mb={1} sx={{ backgroundColor: "white" }}>
         <TextField
           variant="outlined"
           size="small"
           fullWidth={true}
-          label={pageStore.loadingIndexes ? "キーワード検索 辞書取得中..." : "キーワード検索" }
+          label={pageStore.loadingIndexes ? "キーワード検索 辞書取得中..." : "キーワード検索"}
           placeholder="mecab-ipadicによる形態素解析結果を使用してキーワード検索"
           disabled={pageStore.loadingIndexes}
           value={pageStore.keyword}
@@ -143,6 +145,30 @@ export const Issues: React.FC = observer((props) => {
           </Paper>
         </Box>
       )}
+    </>
+  );
+});
+
+export const Issues: React.FC = observer(() => {
+  const [tabIndex, setTabIndex] = React.useState(0);
+
+  return (
+    <Box p={4} style={{ backgroundColor: "#f0f0f0", minHeight: "100vh" }}>
+      <Box sx={{ backgroundColor: "white", mb: 2, borderRadius: 1 }}>
+        <Tabs
+          value={tabIndex}
+          onChange={(_, newValue) => setTabIndex(newValue)}
+          data-testid="main-tabs"
+        >
+          <Tab label="課題" data-testid="tab-issues" />
+          <Tab label="Wiki" data-testid="tab-wiki" />
+          <Tab label="ドキュメント" data-testid="tab-documents" />
+        </Tabs>
+      </Box>
+
+      {tabIndex === 0 && <IssueList />}
+      {tabIndex === 1 && <Wikis />}
+      {tabIndex === 2 && <Documents />}
     </Box>
   );
 });

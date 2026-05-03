@@ -12,6 +12,8 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { Index } from "./containers";
 import { Issues } from "./containers/issues";
 import { Issue } from "./containers/issue";
+import { Wiki } from "./containers/wiki";
+import { Document } from "./containers/document";
 
 dayjs.locale("ja");
 configure({
@@ -55,12 +57,14 @@ const styles = {
 createRoot(document.querySelector("#app")!).render(
   <div className={styles.root}>
     <CssBaseline />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/issues" element={<Issues />} />
-          <Route path="/issues/:id" element={<Issue />} />
-        </Routes>
-      </BrowserRouter>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/issues" element={<Issues />} />
+        <Route path="/issues/:id" element={<Issue />} />
+        <Route path="/wikis/:id" element={<Wiki />} />
+        <Route path="/documents/:id" element={<Document />} />
+      </Routes>
+    </BrowserRouter>
   </div>
 );
