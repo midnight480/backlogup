@@ -1,7 +1,5 @@
-import { Box, Avatar, Tooltip, Badge } from "@mui/material";
 import React, { ReactNode } from "react";
 import type * as backlog from "backlog-js";
-import { Check } from "@mui/icons-material";
 
 interface Props {
   user: backlog.Entity.User.User;
@@ -11,22 +9,15 @@ interface Props {
 
 export const NotificationUser: React.FC<Props> = (props: Props) => {
   return (
-    <Box ml={1}>
-      <Tooltip title={props.user?.name} placement="top">
-          <Badge
-            overlap="circular"
-            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-            invisible={!props.alreadyRead}
-            color="success"
-            variant="dot"
-          >
-            <Avatar
-              alt={props.user?.name}
-              src={`/assets/users/${props.user?.id}/icon`}
-              sx={{ width: 24, height: 24, fontSize: 12, opacity: props.alreadyRead ? 1 : 0.6 }}
-            />
-          </Badge>
-      </Tooltip>
-    </Box>
+    <div className="ml-1 relative inline-block" title={props.user?.name}>
+      <img
+        alt={props.user?.name || "Notification User"}
+        src={`/assets/users/${props.user?.id}/icon`}
+        className={`h-6 w-6 rounded-full ${!props.alreadyRead ? 'opacity-100' : 'opacity-60'}`}
+      />
+      {!props.alreadyRead && (
+        <span className="absolute bottom-0 right-0 block h-2 w-2 rounded-full bg-green-500 ring-2 ring-white"></span>
+      )}
+    </div>
   );
 };

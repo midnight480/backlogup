@@ -1,174 +1,138 @@
 import React from "react";
-import { useStore } from "../stores";
-import { useDidMount } from "@better-hooks/lifecycle";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { observer } from "mobx-react-lite";
-import dayjs from 'dayjs';
+import { useDidMount } from "@better-hooks/lifecycle";
 import { Link } from "react-router-dom";
-import { Avatar, Box, Chip, Paper, Tab, Tabs, TextField } from "@mui/material";
-import { Wikis } from "./wikis";
-import { Documents } from "./documents";
+import dayjs from "dayjs";
+import { useStore } from "../stores";
+import { useI18n } from "../i18n";
 
-const IssueList: React.FC = observer(() => {
+export const Issues: React.FC = observer(() => {
   const { pageStore } = useStore();
+  const { t } = useI18n();
 
   useDidMount(() => {
     pageStore.fetch();
     pageStore.generateIndex();
   });
 
-  const columns: GridColDef[] = [
-    {
-      field: "種別",
-      headerName: "種別",
-      flex: 1,
-      minWidth: 160,
-      valueGetter: (params) => params.row?.issueType?.name,
-      renderCell: (params) => <Chip label={params.row?.issueType?.name} style={{ backgroundColor: params.row?.issueType?.color, color: "white", }} />,
-    },
-    {
-      field: "issueKey",
-      headerName: "キー",
-      flex: 1,
-      minWidth: 160,
-      valueGetter: (params) => params.row?.issueKey,
-      renderCell: (params) => <Link to={`/issues/${params.row?.id}`}>{params.row?.issueKey}</Link>,
-    },
-    {
-      field: "summary",
-      headerName: "件名",
-      flex: 5,
-    },
-    {
-      field: "assignee.name",
-      headerName: "担当者",
-      flex: 1,
-      valueGetter: (params) => params.row?.assignee?.name,
-      renderCell: (params) => params.row?.assignee?.name ? (
-        <Box display={"flex"} alignItems={"center"}>
-          <Avatar
-            alt={params.row?.assignee?.name}
-            src={`/assets/users/${params.row?.assignee?.id}/icon`}
-            sx={{ width: 24, height: 24, fontSize: 12, mr: 0.5 }}
+  return (
+    <div className="flex flex-col gap-6">
+      <header className="mb-2">
+        <div className="relative w-full md:max-w-md">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+          <input 
+            className="w-full pl-10 pr-4 py-2 bg-white border border-outline-variant rounded-lg text-body-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none shadow-sm transition-all" 
+            placeholder={pageStore.loadingIndexes ? t("loadingSearch") : t("searchKeywords")}
+            disabled={pageStore.loadingIndexes}
+            value={pageStore.keyword}
+            onChange={(e) => pageStore.setKeyword(e.target.value)}
+            type="text" 
           />
-          {params.row?.assignee?.name}
-        </Box>
-      ) : params.row?.assignee?.name
-    },
-    {
-      field: "状態",
-      headerName: "状態",
-      flex: 1,
-      valueGetter: (params) => params.row?.status?.name,
-      renderCell: (params) => <Chip label={params.row?.status?.name} style={{ backgroundColor: params.row?.status?.color, color: "white", }} />,
-    },
-    {
-      field: "カテゴリー",
-      headerName: "カテゴリー",
-      flex: 1,
-      valueGetter: (params) => params.row?.category?.map((category) => category.name).join(","),
-      renderCell: (params) => params.row?.category?.map((category) => category.name).join(","),
-    },
-    {
-      field: "優先度",
-      headerName: "優先度",
-      width: 72,
-      valueGetter: (params) => params.row?.priority?.name,
-      renderCell: (params) => {
-        switch (params.row?.priority?.name) {
-          case "高":
-            return <span style={{ color: "#f42858" }}>⬆</span>;
-          case "中":
-            return <span style={{ color: "#4488c5" }}>➡️</span>;
-          case "低":
-            return <span style={{ color: "#5db5a6" }}>⬇</span>;
-        }
-      },
-    },
-    {
-      field: "登録日",
-      headerName: "登録日",
-      width: 110,
-      valueGetter: (params) => dayjs(params.row?.created).format("YYYY/MM/DD"),
-    },
-    {
-      field: "更新日",
-      headerName: "更新日",
-      width: 110,
-      valueGetter: (params) => dayjs(params.row?.updated).format("YYYY/MM/DD"),
-    }
-  ];
+        </div>
+      </header>
 
-  return (
-    <>
-      <Box mb={1} sx={{ backgroundColor: "white" }}>
-        <TextField
-          variant="outlined"
-          size="small"
-          fullWidth={true}
-          label={pageStore.loadingIndexes ? "キーワード検索 辞書取得中..." : "キーワード検索"}
-          placeholder="mecab-ipadicによる形態素解析結果を使用してキーワード検索"
-          disabled={pageStore.loadingIndexes}
-          value={pageStore.keyword}
-          onChange={(e) => pageStore.setKeyword(e.target.value)}
-        />
-      </Box>
+      <div className="grid grid-cols-12 gap-6 items-start">
+        <div className="col-span-12 lg:col-span-8 bg-white rounded-xl border border-[#D0D7DE] overflow-hidden shadow-sm">
+          <div className="bg-[#F6F8FA] border-b border-[#D0D7DE] px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <span className="text-body-sm font-bold text-on-surface">{t("backedUpIssues")}</span>
+              {pageStore.loadingPages ? (
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                  <span className="text-body-sm text-tertiary">{t("downloading")} {pageStore.currentDownloading} / {pageStore.totalPage}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-secondary"></span>
+                  <span className="text-body-sm text-tertiary">{t("allSyncsVerified")}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <button 
+                className={`p-1.5 rounded transition-colors ${pageStore.page > 0 ? "hover:bg-surface-container-high cursor-pointer text-on-surface" : "text-outline opacity-50 cursor-not-allowed"}`}
+                onClick={() => pageStore.setPage(Math.max(0, pageStore.page - 1))}
+                disabled={pageStore.page === 0}
+              >
+                <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+              </button>
+              <span className="text-body-sm px-2">{t("page")} {pageStore.page + 1} {t("of")} {pageStore.maxPage + 1}</span>
+              <button 
+                className={`p-1.5 rounded transition-colors ${pageStore.page < pageStore.maxPage ? "hover:bg-surface-container-high cursor-pointer text-on-surface" : "text-outline opacity-50 cursor-not-allowed"}`}
+                onClick={() => pageStore.setPage(Math.min(pageStore.maxPage, pageStore.page + 1))}
+                disabled={pageStore.page >= pageStore.maxPage}
+              >
+                <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+              </button>
+            </div>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="text-label-md text-tertiary border-b border-outline-variant bg-surface-container-lowest">
+                  <th className="px-4 py-3 font-semibold uppercase tracking-wider w-24">{t("id")}</th>
+                  <th className="px-4 py-3 font-semibold uppercase tracking-wider">{t("title")}</th>
+                  <th className="px-4 py-3 font-semibold uppercase tracking-wider w-32">{t("status")}</th>
+                  <th className="px-4 py-3 font-semibold uppercase tracking-wider w-32">{t("priority")}</th>
+                  <th className="px-4 py-3 font-semibold uppercase tracking-wider w-40 text-right">{t("modified")}</th>
+                </tr>
+              </thead>
+              <tbody className="text-body-sm divide-y divide-[#D0D7DE]">
+                {pageStore.pages.map((row: any) => (
+                  <tr key={row.id} className="hover:bg-[#F6F8FA] group transition-colors cursor-pointer">
+                    <td className="px-4 py-4 font-code-sm text-primary font-bold">
+                      <Link to={`/issues/${row.id}`} className="hover:underline">{row.issueKey}</Link>
+                    </td>
+                    <td className="px-4 py-4 font-medium text-on-surface">
+                      <Link to={`/issues/${row.id}`} className="hover:underline">{row.summary}</Link>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="px-2.5 py-0.5 text-[11px] font-bold rounded-full border" 
+                            style={{ backgroundColor: row.status?.color || '#EFF1F3', borderColor: row.status?.color || '#D0D7DE', color: 'white' }}>
+                        {row.status?.name}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="px-2 py-0.5 bg-[#EFF1F3] text-tertiary text-[11px] font-bold rounded border border-outline-variant">
+                        {row.priority?.name || '-'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-right text-tertiary">{dayjs(row.updated).format("YYYY/MM/DD")}</td>
+                  </tr>
+                ))}
+                {pageStore.pages.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-tertiary">{t("noIssuesFound")}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-      <DataGrid
-        rows={pageStore.pages}
-        columns={columns}
-        initialState={{
-          pagination: {
-            paginationModel: { page: pageStore.page, pageSize: pageStore.pageSize },
-          },
-        }}
-        pageSizeOptions={[10, 20, 50, 100]}
-        loading={pageStore.loadingPages}
-        onStateChange={(state) => {
-          if (state.pagination?.paginationModel?.page) {
-            pageStore.setPage(state.pagination.paginationModel.page);
-          }
-          if (state.pagination?.paginationModel?.pageSize) {
-            pageStore.setPageSize(state.pagination.paginationModel.pageSize);
-          }
-          // TODO: フィルターとかも保存する
-        }}
-        sx={{ minHeight: 400, backgroundColor: "white" }}
-      />
-
-      {pageStore.loadingPages && (
-        <Box mt={1}>
-          <Paper variant="outlined">
-            <Box p={1}>
-              ダウンロード中: {pageStore.currentDownloading} / {pageStore.totalPage}
-            </Box>
-          </Paper>
-        </Box>
-      )}
-    </>
-  );
-});
-
-export const Issues: React.FC = observer(() => {
-  const [tabIndex, setTabIndex] = React.useState(0);
-
-  return (
-    <Box p={4} style={{ backgroundColor: "#f0f0f0", minHeight: "100vh" }}>
-      <Box sx={{ backgroundColor: "white", mb: 2, borderRadius: 1 }}>
-        <Tabs
-          value={tabIndex}
-          onChange={(_, newValue) => setTabIndex(newValue)}
-          data-testid="main-tabs"
-        >
-          <Tab label="課題" data-testid="tab-issues" />
-          <Tab label="Wiki" data-testid="tab-wiki" />
-          <Tab label="ドキュメント" data-testid="tab-documents" />
-        </Tabs>
-      </Box>
-
-      {tabIndex === 0 && <IssueList />}
-      {tabIndex === 1 && <Wikis />}
-      {tabIndex === 2 && <Documents />}
-    </Box>
+        <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
+          <div className="bg-[#DDF4FF] dark:bg-primary/20 border border-primary rounded-xl p-6 shadow-sm">
+            <div className="flex items-start gap-4">
+              <span className="material-symbols-outlined text-primary">cloud_off</span>
+              <div>
+                <h4 className="text-body-md font-bold text-[#0550AE] mb-1">{t("archiveIntegrityNote")}</h4>
+                <p className="text-body-sm text-primary dark:text-blue-300 leading-tight">
+                  {t("archiveIntegrityDesc")}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="relative rounded-xl overflow-hidden h-48 border border-outline-variant shadow-sm bg-primary-fixed">
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/80 to-primary/20 z-10"></div>
+            <div className="absolute bottom-4 left-4 z-20">
+              <span className="text-white font-bold text-headline-sm">{t("vaultAnalytics")}</span>
+              <p className="text-white/80 text-body-sm">{t("localSearchIndexed")}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 });

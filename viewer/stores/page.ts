@@ -92,9 +92,10 @@ export class PageStore {
 
   setKeyword(keyword: string) {
     this.keyword = keyword;
+    this.page = 0; // Reset to first page on new search
   }
 
-  get pages() {
+  get filteredPages() {
     const keyword = this.keyword.trim();
     if (keyword === "") {
       return this.internalPages;
@@ -107,5 +108,14 @@ export class PageStore {
       page.summary.includes(keyword) ||
       page.description.includes(keyword)
     );
+  }
+
+  get maxPage() {
+    return Math.max(0, Math.ceil(this.filteredPages.length / this.pageSize) - 1);
+  }
+
+  get pages() {
+    const start = this.page * this.pageSize;
+    return this.filteredPages.slice(start, start + this.pageSize);
   }
 }

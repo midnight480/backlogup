@@ -1,4 +1,3 @@
-import { Box, Avatar, Typography } from "@mui/material";
 import React, { ReactNode } from "react";
 import type * as backlog from "backlog-js";
 
@@ -9,16 +8,20 @@ interface Props {
 
 export const UserHeader: React.FC<Props> = (props: Props) => {
   return (
-    <Box display={"flex"} alignItems={"center"}>
-      <Box>
-        <Avatar alt={props.user?.name} src={`/assets/users/${props.user?.id}/icon`} />
-      </Box>
-      <Box ml={1.5}>
-        <Box>
-          <Typography variant="body1" fontWeight={"bold"}>{props.user?.name}</Typography>
-        </Box>
+    <div className="flex items-center">
+      <div className="flex-shrink-0">
+        <img
+          alt={props.user?.name || "User Avatar"}
+          src={`/assets/users/${props.user?.id}/icon`}
+          className="h-10 w-10 rounded-full"
+        />
+      </div>
+      <div className="ml-3">
+        <div>
+          <span className="text-sm font-bold text-gray-900">{props.user?.name}</span>
+        </div>
         {props.children}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
