@@ -1,0 +1,172 @@
+import React, { createContext, useContext, useState, useEffect } from "react";
+
+export type Lang = "en" | "ja";
+
+export const dict = {
+  en: {
+    dashboard: "Dashboard",
+    issues: "Issues",
+    wikis: "Wiki",
+    documents: "Documents",
+    settings: "Settings",
+    localArchive: "Local Archive",
+    notice: "Notice: Subversion, Git, and generic files are NOT backed up.",
+    searchPlaceholder: "Search archives...",
+    close: "Close",
+    language: "Language",
+    
+    // Dashboard
+    projectDetails: "Project Details",
+    projectKey: "Project Key",
+    created: "Created",
+    licenceInfo: "Licence Info",
+    unknownPlan: "Unknown Plan",
+    planType: "Plan Type",
+    premium: "Premium",
+    userLimit: "User Limit",
+    unlimited: "Unlimited",
+    storageCapacity: "Storage Capacity",
+    renewalDate: "Renewal Date",
+    issuesBackedUp: "Issues Backed Up",
+    wikiPagesBackedUp: "Wiki Pages Backed Up",
+    sharedFilesBackedUp: "Shared Files Backed Up",
+    lastSync: "Last Sync",
+
+    // Issues
+    issueExplorer: "Issue Explorer",
+    archives: "Archives",
+    loadingSearch: "Loading search dictionary...",
+    searchKeywords: "Search keywords...",
+    backedUpIssues: "Backed Up Issues",
+    downloading: "Downloading:",
+    allSyncsVerified: "All syncs verified",
+    page: "Page",
+    of: "of",
+    id: "ID",
+    title: "Title",
+    status: "Status",
+    priority: "Priority",
+    modified: "Modified",
+    noIssuesFound: "No issues found.",
+    archiveIntegrityNote: "Archive Integrity Note",
+    archiveIntegrityDesc: "Notice: Subversion, Git, and generic file repositories are NOT backed up in this view. Only metadata, issues, and wiki contents are preserved in the Local Archive vault.",
+    vaultAnalytics: "Vault Analytics",
+    localSearchIndexed: "Local Search Indexed",
+
+    // Common
+    description: "Description",
+    comments: "Comments",
+    details: "Details",
+    assignee: "Assignee",
+    milestone: "Milestone",
+    versions: "Versions",
+    category: "Category",
+    resolution: "Resolution",
+    registeredBy: "Registered By",
+    viewInBacklog: "View in Backlog",
+    attachment: "Attachment",
+  },
+  ja: {
+    dashboard: "ダッシュボード",
+    issues: "課題",
+    wikis: "Wiki",
+    documents: "ドキュメント",
+    settings: "設定",
+    localArchive: "ローカルアーカイブ",
+    notice: "注意: Subversion, Git, 共有ファイルはバックアップされません。",
+    searchPlaceholder: "アーカイブを検索...",
+    close: "閉じる",
+    language: "言語",
+
+    // Dashboard
+    projectDetails: "プロジェクト詳細",
+    projectKey: "プロジェクトキー",
+    created: "作成日",
+    licenceInfo: "ライセンス情報",
+    unknownPlan: "不明なプラン",
+    planType: "プラン種別",
+    premium: "プレミアム",
+    userLimit: "ユーザー上限",
+    unlimited: "無制限",
+    storageCapacity: "ストレージ容量",
+    renewalDate: "更新日",
+    issuesBackedUp: "バックアップ済みの課題",
+    wikiPagesBackedUp: "バックアップ済みのWiki",
+    sharedFilesBackedUp: "バックアップ済みの共有ファイル",
+    lastSync: "最終同期",
+
+    // Issues
+    issueExplorer: "課題エクスプローラー",
+    archives: "アーカイブ",
+    loadingSearch: "検索辞書を読み込み中...",
+    searchKeywords: "キーワードで検索...",
+    backedUpIssues: "バックアップ済みの課題",
+    downloading: "ダウンロード中:",
+    allSyncsVerified: "同期完了",
+    page: "ページ",
+    of: "/",
+    id: "キー",
+    title: "件名",
+    status: "状態",
+    priority: "優先度",
+    modified: "更新日",
+    noIssuesFound: "課題が見つかりません。",
+    archiveIntegrityNote: "アーカイブについて",
+    archiveIntegrityDesc: "注意: Subversion, Git, ファイル機能はこのビューではバックアップ対象外です。メタデータ、課題、Wikiの内容のみがアーカイブとして保存されます。",
+    vaultAnalytics: "Vault分析",
+    localSearchIndexed: "ローカル検索インデックス化完了",
+
+    // Common
+    description: "詳細",
+    comments: "コメント",
+    details: "属性",
+    assignee: "担当者",
+    milestone: "マイルストーン",
+    versions: "発生バージョン",
+    category: "カテゴリー",
+    resolution: "完了理由",
+    registeredBy: "登録者",
+    viewInBacklog: "Backlogで見る",
+    attachment: "添付ファイル",
+  }
+};
+
+type I18nContextType = {
+  lang: Lang;
+  setLang: (lang: Lang) => void;
+  t: (key: keyof typeof dict.en) => string;
+};
+
+const I18nContext = createContext<I18nContextType>({
+  lang: "ja",
+  setLang: () => {},
+  t: (key) => dict.ja[key] || key,
+});
+
+export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [lang, setLangState] = useState<Lang>("ja");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("lang") as Lang;
+    if (saved === "en" || saved === "ja") {
+      setLangState(saved);
+    }
+  }, []);
+
+  const setLang = (newLang: Lang) => {
+    setLangState(newLang);
+    localStorage.setItem("lang", newLang);
+  };
+
+  const t = (key: keyof typeof dict.en) => {
+    return dict[lang][key] || key;
+  };
+
+  return (
+    <I18nContext.Provider value={{ lang, setLang, t }}>
+      {children}
+    </I18nContext.Provider>
+  );
+};
+
+export const useI18n = () => useContext(I18nContext);

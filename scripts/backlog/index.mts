@@ -273,6 +273,7 @@ for (let fetched = 0, page = 0; fetched < totalIssues; page++) {
 // ========================================
 
 console.log("--- Wiki バックアップ開始 ---");
+try {
 const wikiTags = await withRetry(() => backlog.getWikisTags(projectKey));
 await writeFile(resolve(distConfigs, "wiki-tags.json"), JSON.stringify(wikiTags), { encoding: "utf-8" });
 
@@ -319,6 +320,14 @@ await Promise.all(wikis.map((wikiListItem) => limit(async () => {
   console.log(`${wikiLogPrefix} 完了`);
 })));
 console.log("--- Wiki バックアップ完了 ---");
+} catch (e: any) {
+  const status = e.response?.status || e.status || e._status || 0;
+  if (status === 403 || status === 404) {
+    console.log("Wiki機能が無効になっているか権限がないため、スキップします。");
+  } else {
+    console.error("Wikiバックアップ中にエラーが発生しました:", e.message || e);
+  }
+}
 
 // ========================================
 // ドキュメント バックアップ
@@ -342,6 +351,7 @@ interface DocumentListItem {
   updated: string;
 }
 
+try {
 const documentTree = await fetchBacklogApi<any>("/documents/tree", { projectIdOrKey: projectKey });
 await writeFile(resolve(distDocuments, "tree.json"), JSON.stringify(documentTree), { encoding: "utf-8" });
 
@@ -424,3 +434,11 @@ await Promise.all(allDocuments.map((doc) => limit(async () => {
 })));
 
 console.log("--- ドキュメント バックアップ完了 ---");
+} catch (e: any) {
+  const status = e.response?.status || e.status || e._status || 0;
+  if (status === 403 || status === 404) {
+    console.log("ドキュメント機能が無効になっているか権限がないため、スキップします。");
+  } else {
+    console.error("ドキュメントバックアップ中にエラーが発生しました:", e.message || e);
+  }
+}

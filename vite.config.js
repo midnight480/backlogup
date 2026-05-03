@@ -4,11 +4,16 @@ import tsconfigPaths from "vite-tsconfig-paths";
 import nodePolyfills from "vite-plugin-node-stdlib-browser";
 
 export default defineConfig(({ mode }) => {
-  process.env = { ...process.env, ...loadEnv(mode, __dirname) };
+  const env = loadEnv(mode, __dirname, "");
+  process.env = { ...process.env, ...env };
 
   return {
     root: "./viewer/",
     publicDir: "../scripts/backlog/dist",
+    define: {
+      "import.meta.env.BACKLOG_HOST": JSON.stringify(env.BACKLOG_HOST || ""),
+      "import.meta.env.BACKLOG_PROJECT_KEY": JSON.stringify(env.BACKLOG_PROJECT_KEY || ""),
+    },
     server: {
       hmr: {
         protocol: "ws",

@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import { Link, useParams } from "react-router-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import TiptapLink from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
@@ -15,9 +16,8 @@ import { TableCell } from "@tiptap/extension-table";
 import { TableHeader } from "@tiptap/extension-table";
 
 const tiptapExtensions = [
-    StarterKit.configure({
-        link: { openOnClick: false },
-    }),
+    StarterKit,
+    TiptapLink.configure({ openOnClick: false }),
     Image,
     TaskList,
     TaskItem.configure({ nested: true }),
@@ -37,8 +37,7 @@ const knownNodeTypes = new Set([
 
 // Tiptapが認識するマークタイプ一覧
 const knownMarkTypes = new Set([
-    "bold", "italic", "strike", "code", "link", "underline",
-    "textStyle", "highlight", "subscript", "superscript",
+    "bold", "italic", "strike", "code", "link"
 ]);
 
 /**
@@ -274,6 +273,7 @@ const DocumentTreeNodeView: React.FC<{ node: any; documents: any[]; currentDocId
 export const Document: React.FC = observer(() => {
     const { documentStore } = useStore();
     const { id: documentId } = useParams();
+    const [searchQuery, setSearchQuery] = useState("");
 
     useDidMount(() => {
         documentStore.fetch();
@@ -290,6 +290,30 @@ export const Document: React.FC = observer(() => {
     });
 
     const activeTree = documentStore.tree?.activeTree;
+    
+    const filteredTreeChildren = useMemo(() => {
+        if (!activeTree || !activeTree.children) return [];
+        if (!searchQuery) return activeTree.children;
+        
+        const filterDocumentTree = (nodes: any[], query: string): any[] => {
+            const lowerQuery = query.toLowerCase();
+            return nodes.map(node => {
+                const matchesName = node.name.toLowerCase().includes(lowerQuery);
+                let filteredChildren: any[] = [];
+                if (node.children && node.children.length > 0) {
+                    filteredChildren = filterDocumentTree(node.children, query);
+                }
+                
+                if (matchesName || filteredChildren.length > 0) {
+                    return { ...node, children: filteredChildren };
+                }
+                return null;
+            }).filter(Boolean);
+        };
+        
+        return filterDocumentTree(activeTree.children, searchQuery);
+    }, [activeTree, searchQuery]);
+
     const doc = documentStore.document;
 
     return (
@@ -302,14 +326,26 @@ export const Document: React.FC = observer(() => {
                         Directory
                     </h2>
                 </div>
+                <div className="p-4 border-b border-surface-container-low bg-surface-container-lowest">
+                    <div className="relative">
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+                        <input 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-9 pr-4 py-1.5 bg-surface-container-low border border-outline-variant rounded-lg text-body-sm focus:outline-none focus:ring-1 focus:ring-primary" 
+                            placeholder="Filter documents..." 
+                            type="text"
+                        />
+                    </div>
+                </div>
                 <div className="flex-1 overflow-y-auto p-2 bg-surface-container-lowest">
                     {documentStore.loadingList ? (
                         <div className="flex justify-center p-4">
                             <span className="material-symbols-outlined animate-spin text-outline">refresh</span>
                         </div>
-                    ) : activeTree && activeTree.children.length > 0 ? (
+                    ) : filteredTreeChildren.length > 0 ? (
                         <div>
-                            {activeTree.children.map((node: any) => (
+                            {filteredTreeChildren.map((node: any) => (
                                 <DocumentTreeNodeView key={node.id} node={node} documents={documentStore.documents} currentDocId={documentId} level={0} />
                             ))}
                         </div>

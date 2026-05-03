@@ -1,77 +1,111 @@
 # BacklogUp
 
-> Fork 元: [common-creation/backlogup](https://github.com/common-creation/backlogup)
+[English](README.md) | [日本語](README_ja.md)
 
-## これはなに
+> Forked from: [common-creation/backlogup](https://github.com/common-creation/backlogup)
 
-Backlog API を叩いて、指定したプロジェクトのデータをバックアップします。  
-バックアップしたデータは簡易ビューアで閲覧できます。
+## What is this?
 
-![](https://i.imgur.com/CWX1wbL.png)
-![](https://i.imgur.com/ylTYYPW.png)
+BacklogUp calls the Backlog API to back up data for a specified project.  
+The backed-up data can be browsed using a lightweight local viewer.
 
-## バックアップ対象
+## Features & Specifications
 
-| 対象 | 内容 |
-|------|------|
-| 課題 (Issues) | 課題本体、コメント、添付ファイル |
-| Wiki | Wiki ページ、スター、添付ファイル、タグ |
-| ドキュメント (Documents) | ドキュメント本体、ツリー構造、コメント、添付ファイル |
-| プロジェクト設定 | 課題種別、カテゴリ、マイルストーン、メンバー一覧 |
-| ユーザー | アイコン画像 |
+### 1. Data Backup Feature (`npm run backup`)
+- **Full Local Storage**: Saves data from a specified Backlog project to your local environment as JSON and actual files.
+- **Backup Targets**:
+  - **Issues**: Issue details, status, priority, custom attributes, comments, attachments
+  - **Wiki**: Wiki page content, stars, attachments, tags
+  - **Documents**: Folder/file tree structure, document content, comments (including replies), attachments
+  - **Project Settings**: Issue types, categories, milestones, member list, **License Info** (plan type, user limits, storage capacity, etc.)
+  - **User Information**: User metadata, profile icons
+- **Incremental Updates**: If existing data is found, only the updated portions are fetched, significantly speeding up subsequent backups.
 
-## バックアップの取り方
+### 2. Local Archive Viewer (SPA)
+A fast, intuitive React + Vite-based viewer for browsing backed-up data offline.
 
-1. `sample.env` を `.env` にコピー
-2. `.env` のコメント通りに必要事項を入力する
-   - `BACKLOG_HOST` — Backlog のドメイン（例: `xxx.backlog.com`）
-   - `BACKLOG_API_KEY` — API キー（個人設定 → API から取得）
-   - `BACKLOG_PROJECT_KEY` — プロジェクトキー
-3. `npm run backup` でバックアップを開始する
+- **Modern UI Layout**:
+  - Spacious layout using header navigation (sidebar-less).
+  - Consistent design system utilizing Tailwind CSS with semantic theme colors (Green-based Primary color).
+- **Dashboard**:
+  - Displays basic project information, backup progress/statistics, and license details.
+- **Issue Explorer**:
+  - Paginated list view (statuses and priorities visualized with badges).
+  - Fast issue filtering via index-based local keyword search.
+- **Wiki / Document Viewer**:
+  - Left pane displays a folder tree automatically generated from path structures.
+  - Features an **incremental search box** to filter the tree in real-time by page/file name.
+  - Supports Markdown rendering for Wikis, and rich-text rendering via Tiptap (ProseMirror) for Documents.
+  - Supports attachment downloads and hierarchical display of comment threads.
+- **User Settings (Settings Modal)**:
+  - **i18n Support**: Instant switching between English (EN) and Japanese (JA).
+  - **Theme Settings**: Toggle between Light and Dark modes.
+  - Settings are saved to the browser's `localStorage` and persist across reloads.
 
-※ Backlog プロジェクトの規模によっては、バックアップに時間がかかります。
+## How to Backup
 
-## 簡易ビューアのビルド
+1. Copy `sample.env` to `.env`
+2. Fill in the required fields as commented in `.env`:
+   - `BACKLOG_HOST` — Backlog domain (e.g., `xxx.backlog.com`)
+   - `BACKLOG_API_KEY` — API Key (Get this from Personal Settings → API)
+   - `BACKLOG_PROJECT_KEY` — Project Key
+3. Run `npm run backup` to start the backup process.
+
+*Note: Depending on the size of the Backlog project, the backup may take some time.*
+
+### ⚠️ When Changing the Project Key (Required)
+
+Extracted data is not separated into project-specific folders; it is always saved in the same `dist/assets` directory.
+Therefore, **when changing the project key in `.env` to back up a different project, you MUST reset and replace the existing data.**
+(Failure to do so will result in mixed data from multiple projects, causing display issues in the viewer.)
+
+To completely delete existing backup data and start a fresh backup, run the command with `CLEAN_BACKUP=true`:
+
+```bash
+CLEAN_BACKUP=true npm run backup
+```
+
+## Building the Viewer
 
 ```bash
 npm run build
 ```
 
-`dist` ディレクトリに、バックアップデータも含めてアセット一式が保存されます。
+All assets, including the backup data, will be saved in the `dist` directory.
 
-## 開発
+## Development
 
 ```bash
-# 依存インストール
+# Install dependencies
 npm install
 
-# 開発サーバー起動
+# Start the development server
 npx vite --open
 ```
 
-## AI エージェント向けコーディング規約
+## Coding Standards for AI Agents
 
-各 AI IDE が自動で読み込むルールファイルを配置しています。
+We provide rule files automatically loaded by various AI IDEs.
 
-| IDE | ファイル | 読み込み |
+| IDE | File | Loading |
 |-----|---------|---------|
-| Kiro | `.kiro/steering/coding-standards.md` | 自動 |
-| Cursor | `.cursorrules` | 自動 |
-| GitHub Copilot | `.github/copilot-instructions.md` | 自動 |
-| Cline | `.clinerules` | 自動 |
-| Windsurf | `.windsurfrules` | 自動 |
-| Google Antigravity | — | 手動設定が必要 |
+| Kiro | `.kiro/steering/coding-standards.md` | Automatic |
+| Cursor | `.cursorrules` | Automatic |
+| GitHub Copilot | `.github/copilot-instructions.md` | Automatic |
+| Cline | `.clinerules` | Automatic |
+| Windsurf | `.windsurfrules` | Automatic |
+| Google Antigravity | — | Manual setup required |
 
-マスタードキュメント: [`docs/coding-standards.md`](docs/coding-standards.md)
+Master Document: [`docs/coding-standards.md`](docs/coding-standards.md)
 
-### Antigravity での設定方法
+### Setup for Antigravity
 
-Google Antigravity はファイルベースのルール自動読み込みに未対応のため、手動で Knowledge に登録する必要があります。
+Since Google Antigravity does not support automatic file-based rule loading, you must manually register them in Knowledge.
 
-1. Antigravity を開く
-2. 設定 → Knowledge を開く
-3. `docs/coding-standards.md` の内容を Knowledge として追加する
+1. Open Antigravity
+2. Go to Settings → Knowledge
+3. Add the contents of `docs/coding-standards.md` as Knowledge
 
-## ライセンス
+## License
 
 MIT License

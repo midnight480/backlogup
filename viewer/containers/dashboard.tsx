@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { useI18n } from "../i18n";
 
 export const Dashboard: React.FC = () => {
+  const { t } = useI18n();
   const [project, setProject] = useState<any>(null);
   const [licence, setLicence] = useState<any>(null);
   const [gitRepos, setGitRepos] = useState<any[]>([]);
@@ -43,32 +45,24 @@ export const Dashboard: React.FC = () => {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const backlogHost = window.location.hostname || "your-space.backlog.jp";
-  const projectKey = project?.projectKey || "PROJ";
+  const backlogHost = import.meta.env.BACKLOG_HOST || window.location.hostname || "your-space.backlog.jp";
+  const projectKey = import.meta.env.BACKLOG_PROJECT_KEY || project?.projectKey || "PROJ";
 
   return (
     <div className="max-w-6xl mx-auto py-lg">
-      <div className="mb-lg bg-[#DDF4FF] border border-[#0969DA] rounded-lg p-md flex items-center gap-md">
-        <span className="material-symbols-outlined text-[#0969DA]">info</span>
-        <p className="font-body-md text-[#0969DA] font-medium">
-          Note: Subversion, Git, and generic files are NOT backed up.
+      <div className="mb-lg bg-[#DDF4FF] dark:bg-primary/20 border border-primary rounded-lg p-md flex items-center gap-md">
+        <span className="material-symbols-outlined text-primary dark:text-blue-300">info</span>
+        <p className="font-body-md text-primary dark:text-blue-300 font-medium">
+          {t("notice")}
         </p>
       </div>
 
       <div className="flex justify-between items-end mb-xl">
         <div>
-          <h1 className="font-headline-lg text-on-surface">Archive Dashboard</h1>
+          <h1 className="font-headline-lg text-on-surface">{t("dashboard")}</h1>
           <p className="text-on-surface-variant font-body-md">
             Overview of your local project preservation status.
           </p>
-          <div className="mt-sm flex items-center gap-sm">
-            <span className="bg-surface-container-highest text-on-surface px-2 py-1 rounded text-label-md">
-              テキスト整形式: {project?.textFormattingRule === "markdown" ? "Markdown" : "Backlog"}
-            </span>
-            <span className="text-on-surface-variant text-body-sm">
-              • textFormattingRule: "{project?.textFormattingRule || "unknown"}"
-            </span>
-          </div>
         </div>
       </div>
 
@@ -77,28 +71,28 @@ export const Dashboard: React.FC = () => {
         <div className="col-span-12 md:col-span-6 bg-white border border-[#D0D7DE] rounded-xl p-xl flex flex-col justify-between">
           <div>
             <span className="text-label-md bg-[#EFF1F3] text-on-surface-variant px-sm py-xs rounded font-label-md uppercase">
-              Licence Info
+              {t("licenceInfo")}
             </span>
             <h3 className="font-headline-md mt-sm text-on-surface">
               {licence ? (
-                licence.licenceTypeId === 51 ? "Premium" : `Plan Type ${licence.licenceTypeId || "Unknown"}`
-              ) : "Unknown Plan"}
+                licence.licenceTypeId === 51 ? t("premium") : `${t("planType")} ${licence.licenceTypeId || t("unknownPlan")}`
+              ) : t("unknownPlan")}
             </h3>
             <div className="mt-lg space-y-md">
               <div className="flex justify-between items-center py-2 border-b border-surface-container">
-                <span className="text-body-sm text-on-surface-variant">User Limit</span>
+                <span className="text-body-sm text-on-surface-variant">{t("userLimit")}</span>
                 <span className="font-bold">
-                  {licence ? (licence.userLimit === 0 ? "Unlimited" : licence.userLimit) : "-"}
+                  {licence ? (licence.userLimit === 0 ? t("unlimited") : licence.userLimit) : "-"}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-surface-container">
-                <span className="text-body-sm text-on-surface-variant">Storage Capacity</span>
+                <span className="text-body-sm text-on-surface-variant">{t("storageCapacity")}</span>
                 <span className="font-bold">
                   {licence?.storageLimit ? (licence.storageLimit / (1024 * 1024 * 1024)).toFixed(2) + " GB" : "-"}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2">
-                <span className="text-body-sm text-on-surface-variant">Renewal Date</span>
+                <span className="text-body-sm text-on-surface-variant">{t("renewalDate")}</span>
                 <span className="font-bold text-primary">
                   {licence?.limitDate ? new Date(licence.limitDate).toLocaleDateString() : "-"}
                 </span>
@@ -111,15 +105,23 @@ export const Dashboard: React.FC = () => {
         <div className="col-span-12 md:col-span-6 bg-white border border-[#D0D7DE] rounded-xl p-xl flex flex-col justify-between">
           <div>
             <span className="text-label-md bg-[#EFF1F3] text-on-surface-variant px-sm py-xs rounded font-label-md uppercase">
-              Project Info
+              {t("projectDetails")}
             </span>
             <h3 className="font-headline-md mt-sm text-on-surface">
               {project?.name || "Unknown"} ({project?.projectKey || "-"})
             </h3>
             <div className="mt-lg space-y-md">
               <div className="flex justify-between items-center py-2 border-b border-surface-container">
+                <span className="text-body-sm text-on-surface-variant">Text Formatting</span>
+                <span className="font-bold">{project?.textFormattingRule === "markdown" ? "Markdown" : "Backlog"}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-surface-container">
                 <span className="text-body-sm text-on-surface-variant">Wiki Enabled</span>
                 <span className="font-bold">{project?.useWiki ? "Yes" : "No"}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-surface-container">
+                <span className="text-body-sm text-on-surface-variant">Shared Files Enabled</span>
+                <span className="font-bold">{project?.useFileSharing ? "Yes" : "No"}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-surface-container">
                 <span className="text-body-sm text-on-surface-variant">Subversion Enabled</span>
@@ -139,49 +141,92 @@ export const Dashboard: React.FC = () => {
           <span className="material-symbols-outlined text-primary">hub</span>
           <h3 className="font-headline-sm">リポジトリ・外部連携ガイド</h3>
         </div>
-        <div className="p-xl grid grid-cols-1 md:grid-cols-2 gap-xl">
-          {project?.useSubversion && (
-            <div className="space-y-md">
-              <div className="flex items-center gap-sm">
-                <span className="text-on-surface font-bold">Subversion (SVN)</span>
-                <span className="bg-secondary/10 text-[#006e2b] text-[10px] font-black px-1.5 rounded border border-[#006e2b]/20 uppercase">
-                  Enabled
-                </span>
-              </div>
-              <p className="text-body-sm text-on-surface-variant">
-                Checkout command using <code>.env</code> variables:
-              </p>
-              <div className="bg-surface-container-low p-md rounded-lg border border-outline-variant group relative">
-                <code className="text-code-sm text-on-surface block break-all">
-                  svn co https://{"{$BACKLOG_HOST}"}/svn/{"{"}
-                  $BACKLOG_PROJECT_KEY{"}"}
-                </code>
-                <button
-                  className="absolute top-2 right-2 text-outline hover:text-primary transition-colors"
-                  onClick={() =>
-                    copyToClipboard(
-                      `svn co https://{$BACKLOG_HOST}/svn/{$BACKLOG_PROJECT_KEY}`,
-                      "svn-cmd"
-                    )
-                  }
-                >
-                  <span className="material-symbols-outlined text-[18px]">
-                    {copiedId === "svn-cmd" ? "check" : "content_copy"}
-                  </span>
-                </button>
-              </div>
+        <div className="p-xl flex flex-col gap-xl">
+          {(project?.useSubversion || project?.useFileSharing) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-xl items-start">
+              {project?.useSubversion && (
+                <div className="space-y-md">
+                  <div className="flex items-center gap-sm">
+                    <span className="text-on-surface font-bold">Subversion (SVN)</span>
+                    <span className="bg-secondary/10 text-[#006e2b] text-[10px] font-black px-1.5 rounded border border-[#006e2b]/20 uppercase">
+                      Enabled
+                    </span>
+                  </div>
+                  <p className="text-body-sm text-on-surface-variant">
+                    Checkout command using <code>.env</code> variables:
+                  </p>
+                  <div className="bg-surface-container-low p-md rounded-lg border border-outline-variant group relative">
+                    <code className="text-code-sm text-on-surface block break-all">
+                      svn co https://{backlogHost}/svn/{projectKey}
+                    </code>
+                    <button
+                      className="absolute top-2 right-2 text-outline hover:text-primary transition-colors"
+                      onClick={() =>
+                        copyToClipboard(
+                          `svn co https://${backlogHost}/svn/${projectKey}`,
+                          "svn-cmd"
+                        )
+                      }
+                    >
+                      <span className="material-symbols-outlined text-[18px]">
+                        {copiedId === "svn-cmd" ? "check" : "content_copy"}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {project?.useFileSharing && (
+                <div className="space-y-md">
+                  <div className="flex items-center gap-sm">
+                    <span className="text-on-surface font-bold">共有ファイル (Shared Files)</span>
+                    <span className="bg-secondary/10 text-[#006e2b] text-[10px] font-black px-1.5 rounded border border-[#006e2b]/20 uppercase">
+                      Enabled
+                    </span>
+                  </div>
+                  <p className="text-body-sm text-on-surface-variant">
+                    ブラウザで共有ファイルにアクセスする:
+                  </p>
+                  <div className="bg-surface-container-low p-md rounded-lg border border-outline-variant group relative">
+                    <a
+                      href={`https://${backlogHost}/file/${projectKey}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-code-sm text-primary hover:underline block break-all"
+                    >
+                      https://{backlogHost}/file/{projectKey}
+                    </a>
+                    <button
+                      className="absolute top-2 right-2 text-outline hover:text-primary transition-colors"
+                      onClick={() =>
+                        copyToClipboard(
+                          `https://${backlogHost}/file/${projectKey}`,
+                          "file-sharing-link"
+                        )
+                      }
+                    >
+                      <span className="material-symbols-outlined text-[18px]">
+                        {copiedId === "file-sharing-link" ? "check" : "content_copy"}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {project?.useGit && (
-            <div className="space-y-md">
+            <div className={`space-y-md ${(project?.useSubversion || project?.useFileSharing) ? "border-t border-[#D0D7DE] pt-xl" : ""}`}>
               <div className="flex items-center gap-sm">
                 <span className="text-on-surface font-bold">Git Repositories</span>
                 <span className="bg-secondary/10 text-[#006e2b] text-[10px] font-black px-1.5 rounded border border-[#006e2b]/20 uppercase">
                   Enabled
                 </span>
+                <span className="text-label-sm text-on-surface-variant ml-sm">
+                  {gitRepos.length} repositories
+                </span>
               </div>
-              <div className="space-y-md">
+              <div className={gitRepos.length > 0 ? "grid grid-cols-1 md:grid-cols-2 gap-md" : "space-y-md"}>
                 {gitRepos.length === 0 ? (
                   <p className="text-body-sm text-outline">リポジトリはありません。</p>
                 ) : (
@@ -194,8 +239,8 @@ export const Dashboard: React.FC = () => {
                         className="p-md bg-surface-bright border border-surface-container-high rounded-lg"
                       >
                         <div className="flex justify-between items-center mb-sm">
-                          <span className="font-medium text-body-md">{repo.name}</span>
-                          <div className="flex bg-surface-container rounded p-0.5">
+                          <span className="font-medium text-body-md truncate pr-sm" title={repo.name}>{repo.name}</span>
+                          <div className="flex bg-surface-container rounded p-0.5 shrink-0">
                             <button
                               className={`px-2 py-0.5 text-[11px] font-bold rounded transition-all ${
                                 type === "http"

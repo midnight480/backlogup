@@ -46,7 +46,7 @@ const WikiTreeNodeView: React.FC<{ node: WikiTreeNode; currentWikiId?: string; l
         return (
             <div className={`mt-xs ${level > 0 ? "ml-xl border-l border-outline-variant" : ""}`}>
                 <div 
-                    className={`flex items-center gap-sm py-2 rounded-lg text-body-sm cursor-pointer ${paddingLeftClass} ${isCurrent ? 'text-[#0969DA] bg-[#F6F8FA] font-bold' : 'text-on-surface hover:bg-surface-container-low'}`}
+                    className={`flex items-center gap-sm py-2 rounded-lg text-body-sm cursor-pointer ${paddingLeftClass} ${isCurrent ? 'text-primary bg-primary/5 font-bold dark:bg-primary/20 dark:text-blue-300' : 'text-on-surface hover:bg-surface-container-low dark:text-slate-200 dark:hover:bg-slate-800'}`}
                     onClick={() => setOpen(!open)}
                 >
                     <span className="material-symbols-outlined text-sm">{open ? "folder_open" : "folder"}</span>
@@ -65,7 +65,7 @@ const WikiTreeNodeView: React.FC<{ node: WikiTreeNode; currentWikiId?: string; l
     if (node.wiki) {
         return (
             <div className={`mt-xs ${level > 0 ? "ml-xl border-l border-outline-variant" : ""}`}>
-              <Link to={`/wikis/${node.wiki.id}`} className={`flex items-center gap-sm py-1.5 cursor-pointer text-body-sm rounded-lg ${paddingLeftClass} ${isCurrent ? 'text-[#0969DA] bg-[#F6F8FA] font-bold' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low'}`}>
+              <Link to={`/wikis/${node.wiki.id}`} className={`flex items-center gap-sm py-1.5 cursor-pointer text-body-sm rounded-lg ${paddingLeftClass} ${isCurrent ? 'text-primary bg-primary/5 font-bold dark:bg-primary/20 dark:text-blue-300' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800'}`}>
                   <span className="material-symbols-outlined text-sm">description</span>
                   <span className="truncate">{node.label}</span>
               </Link>
@@ -99,6 +99,7 @@ export const Wiki: React.FC = observer(() => {
     const { wikiStore } = useStore();
     const { id: wikiId } = useParams();
     const navigate = useNavigate();
+    const [searchQuery, setSearchQuery] = useState("");
 
     useDidMount(() => {
         wikiStore.fetch();
@@ -114,7 +115,13 @@ export const Wiki: React.FC = observer(() => {
         wikiStore.clearDetail();
     });
 
-    const tree = useMemo(() => buildWikiTree(wikiStore.wikis), [wikiStore.wikis]);
+    const filteredWikis = useMemo(() => {
+        if (!searchQuery) return wikiStore.wikis;
+        const q = searchQuery.toLowerCase();
+        return wikiStore.wikis.filter(w => w.name.toLowerCase().includes(q));
+    }, [wikiStore.wikis, searchQuery]);
+
+    const tree = useMemo(() => buildWikiTree(filteredWikis), [filteredWikis]);
     const rootChildren = Array.from(tree.children.values());
 
     const isMarkdown = wikiStore.textFormattingRule === "markdown";
@@ -126,7 +133,13 @@ export const Wiki: React.FC = observer(() => {
                 <div className="p-md border-b border-outline-variant">
                     <div className="relative">
                         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
-                        <input className="w-full pl-9 pr-4 py-1.5 bg-surface-container-low border border-outline-variant rounded-lg text-body-sm focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Filter pages..." type="text"/>
+                        <input 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-9 pr-4 py-1.5 bg-surface-container-low border border-outline-variant rounded-lg text-body-sm focus:outline-none focus:ring-1 focus:ring-primary" 
+                            placeholder="Filter pages..." 
+                            type="text"
+                        />
                     </div>
                 </div>
                 <div className="flex-1 overflow-y-auto">
