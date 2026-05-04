@@ -12,9 +12,9 @@ inclusion: always
 
 - **名前**: backlogup（Backlog プロジェクトのビューア/バックアップツール）
 - **言語**: TypeScript (strict mode)
-- **フレームワーク**: React 18 + MobX + MUI v5
-- **ビルド**: Vite 4
-- **フォーマッター/リンター**: Rome (Biome の前身)
+- **フレームワーク**: React 19 + MobX + Tailwind CSS
+- **ビルド**: Vite 8
+- **フォーマッター/リンター**: Biome
 - **スクリプト実行**: tsx
 
 ## TypeScript ルール
@@ -25,7 +25,7 @@ inclusion: always
 
 ## フォーマット規約
 
-Rome の設定に従う:
+Biome の設定に従う:
 
 - インデント: スペース 2 つ
 - 行幅上限: 140 文字
@@ -39,7 +39,7 @@ Rome の設定に従う:
 - MobX を使うコンポーネントは `observer()` でラップする。
 - ライフサイクルフックは `@better-hooks/lifecycle` の `useDidMount` / `useWillUnmount` を使用する。
 - Props の型は `interface` で定義し、コンポーネントと同じファイルに置く。
-- UI コンポーネントは MUI を使用する。独自 CSS は最小限にする。
+- UI コンポーネントのスタイリングには Tailwind CSS を使用する。
 
 ## ストア (MobX) 規約
 
@@ -87,7 +87,7 @@ scripts/
 
 - API 呼び出しは `try/finally` (または `try/catch/finally`) で囲む。
 - ユーザーに見せるエラーメッセージは日本語で記述する。
-- `console.log` は開発時のみ許容（Rome の `noConsoleLog: off` 設定に準拠）。
+- `console.log` は開発時のみ許容（Biome の `noConsoleLog: off` 設定に準拠）。
 
 ## 日付処理
 
@@ -119,5 +119,5 @@ scripts/
 
 - `node_modules` や `dist` 配下のファイルを手動で編集しない。
 - `package.json` の依存関係を変更する場合は理由を明記する。
-- 既存の Rome 設定を変更しない（チーム合意なしに）。
+- 既存の Biome 設定を変更しない（チーム合意なしに）。
 - `viewer/` 内でサーバーサイドのロジックを書かない。

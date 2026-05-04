@@ -1,6 +1,6 @@
+import type * as backlog from "backlog-js";
 import { makeAutoObservable } from "mobx";
 import type { RootStore } from ".";
-import type * as backlog from 'backlog-js';
 
 export class IssueStore {
   private rootStore: RootStore;
@@ -21,7 +21,7 @@ export class IssueStore {
 
     const [issue, comments] = await Promise.all([
       fetch(`/assets/issues/${issueId}/issue.json`),
-      fetch(`/assets/issues/${issueId}/comments.json`)
+      fetch(`/assets/issues/${issueId}/comments.json`),
     ]);
     this.issue = await issue.json();
     this.comments = await comments.json();

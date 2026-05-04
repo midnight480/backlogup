@@ -1,7 +1,7 @@
-import { makeAutoObservable } from "mobx";
-import { Document as FlexSearchDocument } from "flexsearch";
-import type { RootStore } from ".";
 import type * as backlog from "backlog-js";
+import { Document as FlexSearchDocument } from "flexsearch";
+import { makeAutoObservable } from "mobx";
+import type { RootStore } from ".";
 
 export class PageStore {
   private rootStore: RootStore;
@@ -13,7 +13,7 @@ export class PageStore {
   public currentDownloading = 0;
   public page = 0;
   public pageSize = 20;
-  public issueKeyIndex: {[issueKey: string]: string} = {};
+  public issueKeyIndex: { [issueKey: string]: string } = {};
   public searchIndex: FlexSearchDocument<unknown, false> | undefined;
   public keyword = "";
 
@@ -102,11 +102,12 @@ export class PageStore {
     }
     const search = this.searchIndex?.search(keyword);
     const response = search?.pop();
-    return this.internalPages.filter((page) =>
-      response?.result?.includes(page.id) ||
-      page.issueKey.includes(keyword) ||
-      page.summary.includes(keyword) ||
-      page.description.includes(keyword)
+    return this.internalPages.filter(
+      (page) =>
+        response?.result?.includes(page.id) ||
+        page.issueKey.includes(keyword) ||
+        page.summary.includes(keyword) ||
+        page.description.includes(keyword),
     );
   }
 

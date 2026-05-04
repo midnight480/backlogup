@@ -1,8 +1,8 @@
 import React from "react";
-import { PageStore } from "./page";
-import { IssueStore } from "./issue";
-import { WikiStore } from "./wiki";
 import { DocumentStore } from "./document";
+import { IssueStore } from "./issue";
+import { PageStore } from "./page";
+import { WikiStore } from "./wiki";
 
 export class RootStore {
   public pageStore: PageStore;

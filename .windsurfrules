@@ -4,9 +4,9 @@
 ## プロジェクト概要
 - 名前: backlogup（Backlog プロジェクトのビューア/バックアップツール）
 - 言語: TypeScript (strict mode)
-- フレームワーク: React 18 + MobX + MUI v5
-- ビルド: Vite 4
-- フォーマッター/リンター: Rome (Biome の前身)
+- フレームワーク: React 19 + MobX + Tailwind CSS
+- ビルド: Vite 8
+- フォーマッター/リンター: Biome
 - スクリプト実行: tsx
 
 ## TypeScript
@@ -14,7 +14,7 @@
 - 型定義は backlog-js の Entity 型を活用。独自型は viewer/@types/ に配置
 - 型のみのインポートには import type を使用
 
-## フォーマット（Rome 設定準拠）
+## フォーマット（Biome 設定準拠）
 - インデント: スペース 2 つ
 - 行幅上限: 140 文字
 - セミコロン: あり
@@ -26,7 +26,7 @@
 - MobX を使うコンポーネントは observer() でラップ
 - ライフサイクルは @better-hooks/lifecycle の useDidMount / useWillUnmount
 - Props は interface で定義し、同ファイルに配置
-- UI は MUI を使用。独自 CSS は最小限
+- UI のスタイリングには Tailwind CSS を使用
 
 ## MobX ストア
 - makeAutoObservable(this) をコンストラクタで呼ぶ
@@ -73,6 +73,6 @@
 ## 禁止事項
 - node_modules / dist の手動編集禁止
 - package.json 依存変更時は理由明記
-- Rome 設定をチーム合意なしに変更しない
+- Biome 設定をチーム合意なしに変更しない
 - viewer/ 内にサーバーサイドロジックを書かない
 - .env をコミットしない

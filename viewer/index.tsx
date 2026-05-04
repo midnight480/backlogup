@@ -3,18 +3,18 @@ import "dayjs/locale/ja";
 
 import dayjs from "dayjs";
 import { configure } from "mobx";
-import React from "react";
+import type React from "react";
+import { useState } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes, NavLink } from "react-router-dom";
+import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
+import { SettingsModal } from "./components/settingsModal";
 import { Index } from "./containers";
-import { Issues } from "./containers/issues";
-import { Issue } from "./containers/issue";
-import { Wiki } from "./containers/wiki";
 import { Dashboard } from "./containers/dashboard";
 import { Document } from "./containers/document";
-import { I18nProvider, useI18n, Lang } from "./i18n";
-import { SettingsModal } from "./components/settingsModal";
-import { useState } from "react";
+import { Issue } from "./containers/issue";
+import { Issues } from "./containers/issues";
+import { Wiki } from "./containers/wiki";
+import { I18nProvider, Lang, useI18n } from "./i18n";
 
 dayjs.locale("ja");
 configure({
@@ -31,16 +31,36 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <div className="flex items-center gap-6">
           <span className="text-xl font-black text-primary dark:text-blue-400 font-headline-md">backlogup</span>
           <div className="hidden md:flex gap-4">
-            <NavLink to="/dashboard" className={({ isActive }) => `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? 'text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400' : 'text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800'}`}>
+            <NavLink
+              to="/dashboard"
+              className={({ isActive }) =>
+                `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? "text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400" : "text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800"}`
+              }
+            >
               {t("dashboard")}
             </NavLink>
-            <NavLink to="/issues" className={({ isActive }) => `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? 'text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400' : 'text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800'}`}>
+            <NavLink
+              to="/issues"
+              className={({ isActive }) =>
+                `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? "text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400" : "text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800"}`
+              }
+            >
               {t("issues")}
             </NavLink>
-            <NavLink to="/wikis/home" className={({ isActive }) => `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? 'text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400' : 'text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800'}`}>
+            <NavLink
+              to="/wikis/home"
+              className={({ isActive }) =>
+                `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? "text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400" : "text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800"}`
+              }
+            >
               {t("wikis")}
             </NavLink>
-            <NavLink to="/documents/root" className={({ isActive }) => `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? 'text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400' : 'text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800'}`}>
+            <NavLink
+              to="/documents/root"
+              className={({ isActive }) =>
+                `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? "text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400" : "text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800"}`
+              }
+            >
               {t("documents")}
             </NavLink>
           </div>
@@ -48,9 +68,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <div className="flex items-center gap-4">
           <div className="relative">
             <span className="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
-            <input className="pl-9 pr-4 py-1.5 bg-surface-container-low border border-outline-variant rounded-lg text-body-sm w-64 focus:ring-1 focus:ring-primary outline-none" placeholder={t("searchPlaceholder")} type="text" />
+            <input
+              className="pl-9 pr-4 py-1.5 bg-surface-container-low border border-outline-variant rounded-lg text-body-sm w-64 focus:ring-1 focus:ring-primary outline-none"
+              placeholder={t("searchPlaceholder")}
+              type="text"
+            />
           </div>
-          <button 
+          <button
             onClick={() => setIsSettingsOpen(true)}
             className="flex items-center justify-center p-2 text-outline hover:bg-surface-container-low dark:hover:bg-slate-800 rounded-full transition-colors"
             title={t("settings")}
@@ -61,9 +85,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       </nav>
 
       <main className="pt-14 pb-12 min-h-screen">
-        <div className="px-gutter py-md max-w-[1400px] mx-auto">
-          {children}
-        </div>
+        <div className="px-gutter py-md max-w-[1400px] mx-auto">{children}</div>
       </main>
 
       <footer className="fixed bottom-0 right-0 left-0 py-2 px-6 flex justify-between items-center z-40 bg-[#DDF4FF] dark:bg-blue-900/20 border-t border-primary">
@@ -94,5 +116,5 @@ createRoot(document.querySelector("#app")!).render(
         </Routes>
       </Layout>
     </BrowserRouter>
-  </I18nProvider>
+  </I18nProvider>,
 );

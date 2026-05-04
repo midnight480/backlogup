@@ -1,8 +1,5 @@
-import { defineConfig, loadEnv, splitVendorChunkPlugin } from "vite";
 import react from "@vitejs/plugin-react";
-import tsconfigPaths from "vite-tsconfig-paths";
-import nodePolyfills from "vite-plugin-node-stdlib-browser";
-
+import { defineConfig, loadEnv } from "vite";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, "");
   process.env = { ...process.env, ...env };
@@ -24,11 +21,10 @@ export default defineConfig(({ mode }) => {
       outDir: "../dist/",
       copyPublicDir: true,
     },
+    resolve: {
+      tsconfigPaths: true,
+    },
     plugins: [
-      nodePolyfills(),
-      tsconfigPaths({
-        root: __dirname,
-      }),
       react({
         babel: {
           parserOpts: {
@@ -36,7 +32,6 @@ export default defineConfig(({ mode }) => {
           },
         },
       }),
-      splitVendorChunkPlugin(),
     ],
   };
 });
