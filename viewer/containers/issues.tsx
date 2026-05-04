@@ -109,7 +109,7 @@ export const Issues: React.FC = observer(() => {
                     </td>
                     <td className="px-4 py-4">
                       <span className="px-2 py-0.5 bg-[#EFF1F3] text-tertiary text-[11px] font-bold rounded border border-outline-variant">
-                        {row.priority?.name || "-"}
+                        {row.priority?.name ? t(row.priority.name as any) : "-"}
                       </span>
                     </td>
                     <td className="px-4 py-4 text-right text-tertiary">{dayjs(row.updated).format("YYYY/MM/DD")}</td>

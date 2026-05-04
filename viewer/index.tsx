@@ -4,7 +4,7 @@ import "dayjs/locale/ja";
 import dayjs from "dayjs";
 import { configure } from "mobx";
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
 import { SettingsModal } from "./components/settingsModal";
@@ -24,6 +24,17 @@ configure({
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const { t, lang } = useI18n();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [project, setProject] = useState<any>(null);
+
+  useEffect(() => {
+    fetch("/assets/configs/project.json")
+      .then((res) => {
+        if (res.ok) return res.json();
+        return null;
+      })
+      .then(setProject)
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="font-body-md text-on-surface bg-background min-h-screen">
@@ -47,22 +58,26 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             >
               {t("issues")}
             </NavLink>
-            <NavLink
-              to="/wikis/home"
-              className={({ isActive }) =>
-                `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? "text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400" : "text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800"}`
-              }
-            >
-              {t("wikis")}
-            </NavLink>
-            <NavLink
-              to="/documents/root"
-              className={({ isActive }) =>
-                `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? "text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400" : "text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800"}`
-              }
-            >
-              {t("documents")}
-            </NavLink>
+            {project?.useWiki !== false && (
+              <NavLink
+                to="/wikis/home"
+                className={({ isActive }) =>
+                  `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? "text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400" : "text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800"}`
+                }
+              >
+                {t("wikis")}
+              </NavLink>
+            )}
+            {project?.useDocument !== false && (
+              <NavLink
+                to="/documents/root"
+                className={({ isActive }) =>
+                  `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? "text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400" : "text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800"}`
+                }
+              >
+                {t("documents")}
+              </NavLink>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-4">

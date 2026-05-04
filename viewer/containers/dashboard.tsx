@@ -6,8 +6,10 @@ export const Dashboard: React.FC = () => {
   const { t } = useI18n();
   const [project, setProject] = useState<any>(null);
   const [licence, setLicence] = useState<any>(null);
+  const [spaceUsage, setSpaceUsage] = useState<any>(null);
   const [gitRepos, setGitRepos] = useState<any[]>([]);
   const [activeGitType, setActiveGitType] = useState<Record<number, "http" | "ssh">>({});
+  const [cloneAllBranches, setCloneAllBranches] = useState<Record<number, boolean>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,7 +34,18 @@ export const Dashboard: React.FC = () => {
       })
       .then(setGitRepos)
       .catch(() => {});
+    fetch("/assets/configs/space-disk-usage.json")
+      .then((res) => {
+        if (res.ok) return res.json();
+        return null;
+      })
+      .then(setSpaceUsage)
+      .catch(() => {});
   }, []);
+
+  const toggleCloneAll = (id: number) => {
+    setCloneAllBranches((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const toggleGitType = (id: number, type: "http" | "ssh") => {
     setActiveGitType((prev) => ({ ...prev, [id]: type }));
@@ -72,7 +85,9 @@ export const Dashboard: React.FC = () => {
               {licence
                 ? licence.licenceTypeId === 51
                   ? t("premium")
-                  : `${t("planType")} ${licence.licenceTypeId || t("unknownPlan")}`
+                  : licence.licenceTypeId === 11
+                    ? t("free")
+                    : `${t("planType")} ${licence.licenceTypeId || t("unknownPlan")}`
                 : t("unknownPlan")}
             </h3>
             <div className="mt-lg space-y-md">
@@ -84,6 +99,14 @@ export const Dashboard: React.FC = () => {
                 <span className="text-body-sm text-on-surface-variant">{t("storageCapacity")}</span>
                 <span className="font-bold">
                   {licence?.storageLimit ? (licence.storageLimit / (1024 * 1024 * 1024)).toFixed(2) + " GB" : "-"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-surface-container">
+                <span className="text-body-sm text-on-surface-variant">{t("spaceUsage")}</span>
+                <span className="font-bold">
+                  {spaceUsage && spaceUsage.available && spaceUsage.data?.capacity
+                    ? `${((spaceUsage.data.issue + spaceUsage.data.wiki + spaceUsage.data.file + spaceUsage.data.subversion + spaceUsage.data.git + spaceUsage.data.gitLFS) / (1024 * 1024 * 1024)).toFixed(2)} GB / ${(spaceUsage.data.capacity / (1024 * 1024 * 1024)).toFixed(2)} GB`
+                    : t("spaceUsageNotAvailable")}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2">
@@ -167,12 +190,12 @@ export const Dashboard: React.FC = () => {
               {project?.useFileSharing && (
                 <div className="space-y-md">
                   <div className="flex items-center gap-sm">
-                    <span className="text-on-surface font-bold">共有ファイル (Shared Files)</span>
+                    <span className="text-on-surface font-bold">{t("sharedFiles")}</span>
                     <span className="bg-secondary/10 text-[#006e2b] text-[10px] font-black px-1.5 rounded border border-[#006e2b]/20 uppercase">
                       Enabled
                     </span>
                   </div>
-                  <p className="text-body-sm text-on-surface-variant">ブラウザで共有ファイルにアクセスする:</p>
+                  <p className="text-body-sm text-on-surface-variant">{t("browserSharedFiles")}</p>
                   <div className="bg-surface-container-low p-md rounded-lg border border-outline-variant group relative">
                     <a
                       href={`https://${backlogHost}/file/${projectKey}`}
@@ -199,7 +222,7 @@ export const Dashboard: React.FC = () => {
           {project?.useGit && (
             <div className={`space-y-md ${project?.useSubversion || project?.useFileSharing ? "border-t border-[#D0D7DE] pt-xl" : ""}`}>
               <div className="flex items-center gap-sm">
-                <span className="text-on-surface font-bold">Git Repositories</span>
+                <span className="text-on-surface font-bold">{t("gitRepositories")}</span>
                 <span className="bg-secondary/10 text-[#006e2b] text-[10px] font-black px-1.5 rounded border border-[#006e2b]/20 uppercase">
                   Enabled
                 </span>
@@ -211,13 +234,23 @@ export const Dashboard: React.FC = () => {
                 ) : (
                   gitRepos.map((repo) => {
                     const type = activeGitType[repo.id] || "http";
+                    const isCloneAll = cloneAllBranches[repo.id] || false;
                     const url = type === "http" ? repo.httpUrl : repo.sshUrl;
+                    const command = isCloneAll 
+                      ? `git clone ${url} && cd ${repo.name} && git branch -r | grep -v '\\->' | while read remote; do git branch --track "\${remote#origin/}" "$remote" 2>/dev/null || true; done`
+                      : `git clone ${url}`;
                     return (
                       <div key={repo.id} className="p-md bg-surface-bright border border-surface-container-high rounded-lg">
                         <div className="flex justify-between items-center mb-sm">
-                          <span className="font-medium text-body-md truncate pr-sm" title={repo.name}>
-                            {repo.name}
-                          </span>
+                          <div className="flex items-center gap-3 pr-sm overflow-hidden">
+                            <span className="font-medium text-body-md truncate" title={repo.name}>
+                              {repo.name}
+                            </span>
+                            <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
+                              <input type="checkbox" className="rounded border-outline-variant text-primary focus:ring-primary" checked={isCloneAll} onChange={() => toggleCloneAll(repo.id)} />
+                              <span className="text-[11px] text-on-surface-variant font-medium">{t("cloneAllBranches")}</span>
+                            </label>
+                          </div>
                           <div className="flex bg-surface-container rounded p-0.5 shrink-0">
                             <button
                               className={`px-2 py-0.5 text-[11px] font-bold rounded transition-all ${
@@ -241,11 +274,11 @@ export const Dashboard: React.FC = () => {
                           <input
                             className="w-full bg-white border border-outline-variant rounded px-sm py-1.5 text-code-sm text-on-surface-variant focus:ring-0 pr-8"
                             readOnly
-                            value={url}
+                            value={command}
                           />
                           <button
                             className="absolute right-2 top-1.5 text-outline hover:text-primary"
-                            onClick={() => copyToClipboard(url, `git-${repo.id}`)}
+                            onClick={() => copyToClipboard(command, `git-${repo.id}`)}
                           >
                             <span className="material-symbols-outlined text-[16px]">
                               {copiedId === `git-${repo.id}` ? "check" : "content_copy"}
@@ -265,11 +298,8 @@ export const Dashboard: React.FC = () => {
       <div className="bg-[#ffdad6]/20 border-t border-[#ba1a1a]/10 p-xl flex items-start gap-md rounded-b-xl">
         <span className="material-symbols-outlined text-[#ba1a1a]">warning</span>
         <div>
-          <p className="font-bold text-on-background">ファイル共有（共有ファイル）に関する注意</p>
-          <p className="text-body-sm text-on-surface-variant mt-xs">
-            `useFileSharing: true` 設定ですが、APIの制限によりツールによる自動バックアップは汎用的ではありません。
-            共有ファイル内のデータは、手動での確認とエクスポートが必要です。
-          </p>
+          <p className="font-bold text-on-background">{t("sharedFilesNoteTitle")}</p>
+          <p className="text-body-sm text-on-surface-variant mt-xs">{t("sharedFilesNoteDesc")}</p>
         </div>
       </div>
     </div>

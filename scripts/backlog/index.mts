@@ -144,6 +144,18 @@ try {
   console.warn("space licence fetch failed", e);
 }
 
+try {
+  const myself = await withRetry(() => backlog.getMyself());
+  if (myself.roleType === 1) {
+    const diskUsage = await fetchBacklogApi<any>("/space/diskUsage");
+    await writeFile(resolve(distConfigs, "space-disk-usage.json"), JSON.stringify({ available: true, data: diskUsage }), { encoding: "utf-8" });
+  } else {
+    await writeFile(resolve(distConfigs, "space-disk-usage.json"), JSON.stringify({ available: false }), { encoding: "utf-8" });
+  }
+} catch (e) {
+  console.warn("space disk usage fetch failed", e);
+}
+
 if (project.useGit) {
   try {
     const gitRepos = await fetchBacklogApi<any>(`/projects/${projectKey}/git/repositories`);
@@ -253,7 +265,10 @@ for (let fetched = 0, page = 0; fetched < totalIssues; page++) {
 // ========================================
 
 console.log("--- Wiki バックアップ開始 ---");
-try {
+if (project.useWiki === false) {
+  console.log("Wiki機能が無効になっています。スキップします。");
+} else {
+  try {
   const wikiTags = await withRetry(() => backlog.getWikisTags(projectKey));
   await writeFile(resolve(distConfigs, "wiki-tags.json"), JSON.stringify(wikiTags), { encoding: "utf-8" });
 
@@ -312,12 +327,16 @@ try {
     console.error("Wikiバックアップ中にエラーが発生しました:", e.message || e);
   }
 }
+}
 
 // ========================================
 // ドキュメント バックアップ
 // ========================================
 
 console.log("--- ドキュメント バックアップ開始 ---");
+if (project.useDocument === false) {
+  console.log("ドキュメント機能が無効になっています。スキップします。");
+} else {
 
 interface DocumentListItem {
   id: string;
@@ -429,4 +448,5 @@ try {
   } else {
     console.error("ドキュメントバックアップ中にエラーが発生しました:", e.message || e);
   }
+}
 }
