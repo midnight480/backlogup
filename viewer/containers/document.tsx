@@ -11,6 +11,7 @@ import { observer } from "mobx-react-lite";
 import React, { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useStore } from "../stores";
+import { useI18n } from "../i18n";
 
 const tiptapExtensions = [
   StarterKit,
@@ -288,6 +289,7 @@ const DocumentTreeNodeView: React.FC<{ node: any; documents: any[]; currentDocId
 };
 
 export const Document: React.FC = observer(() => {
+  const { t } = useI18n();
   const { documentStore } = useStore();
   const { id: documentId } = useParams();
   const [searchQuery, setSearchQuery] = useState("");
@@ -369,7 +371,7 @@ export const Document: React.FC = observer(() => {
               ))}
             </div>
           ) : (
-            <div className="p-4 text-center text-outline text-body-sm">ドキュメントがありません</div>
+            <div className="p-4 text-center text-outline text-body-sm">{t("noDocuments" as any)}</div>
           )}
         </div>
       </div>
@@ -379,7 +381,7 @@ export const Document: React.FC = observer(() => {
         {!documentId || documentId === "root" ? (
           <div className="flex-1 flex flex-col items-center justify-center text-outline">
             <span className="material-symbols-outlined text-4xl mb-2">description</span>
-            <p className="text-body-lg">ドキュメントを選択してください</p>
+            <p className="text-body-lg">{t("selectDocument")}</p>
           </div>
         ) : documentStore.loadingDetail ? (
           <div className="flex-1 flex justify-center items-center">
@@ -433,7 +435,7 @@ export const Document: React.FC = observer(() => {
               <div className="px-6 py-4 border-t border-surface-container-low bg-surface-container-lowest">
                 <h3 className="text-body-md font-bold text-on-surface mb-3 flex items-center gap-2">
                   <span className="material-symbols-outlined text-sm">attach_file</span>
-                  添付ファイル ({doc.attachments.length})
+                  {t("attachment")} ({doc.attachments.length})
                 </h3>
                 <div className="border border-outline-variant rounded bg-white divide-y divide-outline-variant">
                   {doc.attachments.map((attachment: any) => (
