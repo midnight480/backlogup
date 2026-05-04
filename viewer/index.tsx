@@ -104,9 +104,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       </main>
 
       <footer className="fixed bottom-0 right-0 left-0 py-2 px-6 flex justify-between items-center z-40 bg-[#DDF4FF] dark:bg-blue-900/20 border-t border-primary">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4">
           <span className="font-['Inter'] text-xs font-semibold uppercase tracking-wider text-primary dark:text-blue-300">
             {t("notice")}
+          </span>
+          <span className="font-['Inter'] text-xs text-primary/80 dark:text-blue-300/80">
+            {t("trackingNotice" as keyof typeof dict.en)}
           </span>
         </div>
       </footer>
