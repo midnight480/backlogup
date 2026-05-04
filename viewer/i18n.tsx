@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import type React from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 export type Lang = "en" | "ja";
 
@@ -14,7 +15,7 @@ export const dict = {
     searchPlaceholder: "Search archives...",
     close: "Close",
     language: "Language",
-    
+
     // Dashboard
     projectDetails: "Project Details",
     projectKey: "Project Key",
@@ -49,7 +50,8 @@ export const dict = {
     modified: "Modified",
     noIssuesFound: "No issues found.",
     archiveIntegrityNote: "Archive Integrity Note",
-    archiveIntegrityDesc: "Notice: Subversion, Git, and generic file repositories are NOT backed up in this view. Only metadata, issues, and wiki contents are preserved in the Local Archive vault.",
+    archiveIntegrityDesc:
+      "Notice: Subversion, Git, and generic file repositories are NOT backed up in this view. Only metadata, issues, and wiki contents are preserved in the Local Archive vault.",
     vaultAnalytics: "Vault Analytics",
     localSearchIndexed: "Local Search Indexed",
 
@@ -112,7 +114,8 @@ export const dict = {
     modified: "更新日",
     noIssuesFound: "課題が見つかりません。",
     archiveIntegrityNote: "アーカイブについて",
-    archiveIntegrityDesc: "注意: Subversion, Git, ファイル機能はこのビューではバックアップ対象外です。メタデータ、課題、Wikiの内容のみがアーカイブとして保存されます。",
+    archiveIntegrityDesc:
+      "注意: Subversion, Git, ファイル機能はこのビューではバックアップ対象外です。メタデータ、課題、Wikiの内容のみがアーカイブとして保存されます。",
     vaultAnalytics: "Vault分析",
     localSearchIndexed: "ローカル検索インデックス化完了",
 
@@ -128,7 +131,7 @@ export const dict = {
     registeredBy: "登録者",
     viewInBacklog: "Backlogで見る",
     attachment: "添付ファイル",
-  }
+  },
 };
 
 type I18nContextType = {
@@ -162,11 +165,7 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return dict[lang][key] || key;
   };
 
-  return (
-    <I18nContext.Provider value={{ lang, setLang, t }}>
-      {children}
-    </I18nContext.Provider>
-  );
+  return <I18nContext.Provider value={{ lang, setLang, t }}>{children}</I18nContext.Provider>;
 };
 
 export const useI18n = () => useContext(I18nContext);

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import type React from "react";
+import { useEffect, useState } from "react";
 import { useI18n } from "../i18n";
 
 export const Dashboard: React.FC = () => {
@@ -6,9 +7,7 @@ export const Dashboard: React.FC = () => {
   const [project, setProject] = useState<any>(null);
   const [licence, setLicence] = useState<any>(null);
   const [gitRepos, setGitRepos] = useState<any[]>([]);
-  const [activeGitType, setActiveGitType] = useState<Record<number, "http" | "ssh">>(
-    {}
-  );
+  const [activeGitType, setActiveGitType] = useState<Record<number, "http" | "ssh">>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,17 +51,13 @@ export const Dashboard: React.FC = () => {
     <div className="max-w-6xl mx-auto py-lg">
       <div className="mb-lg bg-[#DDF4FF] dark:bg-primary/20 border border-primary rounded-lg p-md flex items-center gap-md">
         <span className="material-symbols-outlined text-primary dark:text-blue-300">info</span>
-        <p className="font-body-md text-primary dark:text-blue-300 font-medium">
-          {t("notice")}
-        </p>
+        <p className="font-body-md text-primary dark:text-blue-300 font-medium">{t("notice")}</p>
       </div>
 
       <div className="flex justify-between items-end mb-xl">
         <div>
           <h1 className="font-headline-lg text-on-surface">{t("dashboard")}</h1>
-          <p className="text-on-surface-variant font-body-md">
-            Overview of your local project preservation status.
-          </p>
+          <p className="text-on-surface-variant font-body-md">Overview of your local project preservation status.</p>
         </div>
       </div>
 
@@ -74,16 +69,16 @@ export const Dashboard: React.FC = () => {
               {t("licenceInfo")}
             </span>
             <h3 className="font-headline-md mt-sm text-on-surface">
-              {licence ? (
-                licence.licenceTypeId === 51 ? t("premium") : `${t("planType")} ${licence.licenceTypeId || t("unknownPlan")}`
-              ) : t("unknownPlan")}
+              {licence
+                ? licence.licenceTypeId === 51
+                  ? t("premium")
+                  : `${t("planType")} ${licence.licenceTypeId || t("unknownPlan")}`
+                : t("unknownPlan")}
             </h3>
             <div className="mt-lg space-y-md">
               <div className="flex justify-between items-center py-2 border-b border-surface-container">
                 <span className="text-body-sm text-on-surface-variant">{t("userLimit")}</span>
-                <span className="font-bold">
-                  {licence ? (licence.userLimit === 0 ? t("unlimited") : licence.userLimit) : "-"}
-                </span>
+                <span className="font-bold">{licence ? (licence.userLimit === 0 ? t("unlimited") : licence.userLimit) : "-"}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-surface-container">
                 <span className="text-body-sm text-on-surface-variant">{t("storageCapacity")}</span>
@@ -161,16 +156,9 @@ export const Dashboard: React.FC = () => {
                     </code>
                     <button
                       className="absolute top-2 right-2 text-outline hover:text-primary transition-colors"
-                      onClick={() =>
-                        copyToClipboard(
-                          `svn co https://${backlogHost}/svn/${projectKey}`,
-                          "svn-cmd"
-                        )
-                      }
+                      onClick={() => copyToClipboard(`svn co https://${backlogHost}/svn/${projectKey}`, "svn-cmd")}
                     >
-                      <span className="material-symbols-outlined text-[18px]">
-                        {copiedId === "svn-cmd" ? "check" : "content_copy"}
-                      </span>
+                      <span className="material-symbols-outlined text-[18px]">{copiedId === "svn-cmd" ? "check" : "content_copy"}</span>
                     </button>
                   </div>
                 </div>
@@ -184,9 +172,7 @@ export const Dashboard: React.FC = () => {
                       Enabled
                     </span>
                   </div>
-                  <p className="text-body-sm text-on-surface-variant">
-                    ブラウザで共有ファイルにアクセスする:
-                  </p>
+                  <p className="text-body-sm text-on-surface-variant">ブラウザで共有ファイルにアクセスする:</p>
                   <div className="bg-surface-container-low p-md rounded-lg border border-outline-variant group relative">
                     <a
                       href={`https://${backlogHost}/file/${projectKey}`}
@@ -198,12 +184,7 @@ export const Dashboard: React.FC = () => {
                     </a>
                     <button
                       className="absolute top-2 right-2 text-outline hover:text-primary transition-colors"
-                      onClick={() =>
-                        copyToClipboard(
-                          `https://${backlogHost}/file/${projectKey}`,
-                          "file-sharing-link"
-                        )
-                      }
+                      onClick={() => copyToClipboard(`https://${backlogHost}/file/${projectKey}`, "file-sharing-link")}
                     >
                       <span className="material-symbols-outlined text-[18px]">
                         {copiedId === "file-sharing-link" ? "check" : "content_copy"}
@@ -216,15 +197,13 @@ export const Dashboard: React.FC = () => {
           )}
 
           {project?.useGit && (
-            <div className={`space-y-md ${(project?.useSubversion || project?.useFileSharing) ? "border-t border-[#D0D7DE] pt-xl" : ""}`}>
+            <div className={`space-y-md ${project?.useSubversion || project?.useFileSharing ? "border-t border-[#D0D7DE] pt-xl" : ""}`}>
               <div className="flex items-center gap-sm">
                 <span className="text-on-surface font-bold">Git Repositories</span>
                 <span className="bg-secondary/10 text-[#006e2b] text-[10px] font-black px-1.5 rounded border border-[#006e2b]/20 uppercase">
                   Enabled
                 </span>
-                <span className="text-label-sm text-on-surface-variant ml-sm">
-                  {gitRepos.length} repositories
-                </span>
+                <span className="text-label-sm text-on-surface-variant ml-sm">{gitRepos.length} repositories</span>
               </div>
               <div className={gitRepos.length > 0 ? "grid grid-cols-1 md:grid-cols-2 gap-md" : "space-y-md"}>
                 {gitRepos.length === 0 ? (
@@ -234,18 +213,15 @@ export const Dashboard: React.FC = () => {
                     const type = activeGitType[repo.id] || "http";
                     const url = type === "http" ? repo.httpUrl : repo.sshUrl;
                     return (
-                      <div
-                        key={repo.id}
-                        className="p-md bg-surface-bright border border-surface-container-high rounded-lg"
-                      >
+                      <div key={repo.id} className="p-md bg-surface-bright border border-surface-container-high rounded-lg">
                         <div className="flex justify-between items-center mb-sm">
-                          <span className="font-medium text-body-md truncate pr-sm" title={repo.name}>{repo.name}</span>
+                          <span className="font-medium text-body-md truncate pr-sm" title={repo.name}>
+                            {repo.name}
+                          </span>
                           <div className="flex bg-surface-container rounded p-0.5 shrink-0">
                             <button
                               className={`px-2 py-0.5 text-[11px] font-bold rounded transition-all ${
-                                type === "http"
-                                  ? "bg-white shadow-sm text-primary"
-                                  : "text-outline hover:text-on-surface"
+                                type === "http" ? "bg-white shadow-sm text-primary" : "text-outline hover:text-on-surface"
                               }`}
                               onClick={() => toggleGitType(repo.id, "http")}
                             >
@@ -253,9 +229,7 @@ export const Dashboard: React.FC = () => {
                             </button>
                             <button
                               className={`px-2 py-0.5 text-[11px] font-bold rounded transition-all ${
-                                type === "ssh"
-                                  ? "bg-white shadow-sm text-primary"
-                                  : "text-outline hover:text-on-surface"
+                                type === "ssh" ? "bg-white shadow-sm text-primary" : "text-outline hover:text-on-surface"
                               }`}
                               onClick={() => toggleGitType(repo.id, "ssh")}
                             >

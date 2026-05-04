@@ -1,10 +1,10 @@
-import { fileURLToPath } from "url";
-import { dirname, resolve } from "path";
-import { writeFile } from "fs/promises";
 import { config } from "dotenv";
+import { writeFile } from "fs/promises";
+import { tokenize } from "kuromojin";
+import { dirname, resolve } from "path";
 import { remark } from "remark";
 import strip from "strip-markdown";
-import { tokenize } from "kuromojin";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -37,22 +37,26 @@ for (let i = start; i <= end; i++) {
 
     const targetPos = ["名詞", "動詞", "形容詞"];
     const ingoreConjugatedForm = ["基本形", "連用形", "仮定形"];
-    const ignoreChars = /[!"#$%&'()\*\+\-\.,\/:;<=>?@\[\\\]^_`{|}~]/g;
+    const ignoreChars = /[!"#$%&'()*+\-.,/:;<=>?@[\\\]^_`{|}~]/g;
     const ignoreNumbers = /^\d+$/;
-    const targetWords = Array.from(new Set(words
-      .filter((word) => {
-        if (targetPos.includes(word.pos)) {
-          if (word.pos === "動詞") {
-            return !ingoreConjugatedForm.includes(word.conjugated_form);
-          }
-          return true;
-        }
-        return false;
-      })
-      .map((word) => word.surface_form)
-      .filter((form) => !ignoreChars.test(form))
-      .filter((form) => !ignoreNumbers.test(form))
-      .filter((form) => form.length > 2)));
+    const targetWords = Array.from(
+      new Set(
+        words
+          .filter((word) => {
+            if (targetPos.includes(word.pos)) {
+              if (word.pos === "動詞") {
+                return !ingoreConjugatedForm.includes(word.conjugated_form);
+              }
+              return true;
+            }
+            return false;
+          })
+          .map((word) => word.surface_form)
+          .filter((form) => !ignoreChars.test(form))
+          .filter((form) => !ignoreNumbers.test(form))
+          .filter((form) => form.length > 2),
+      ),
+    );
 
     documents.push({
       id,
