@@ -114,7 +114,7 @@ const backlogApiBase = `https://${host}/api/v2`;
 async function fetchBacklogApi<T>(path: string, params: Record<string, string> = {}): Promise<T> {
   return withRetry(async () => {
     const url = new URL(`${backlogApiBase}${path}`);
-    url.searchParams.set("apiKey", apiKey);
+    url.searchParams.set("apiKey", apiKey!);
     for (const [key, value] of Object.entries(params)) {
       url.searchParams.set(key, value);
     }
@@ -126,6 +126,11 @@ async function fetchBacklogApi<T>(path: string, params: Record<string, string> =
     }
     return res.json() as Promise<T>;
   });
+}
+
+// Sanitize URL for logging (strip apiKey)
+function sanitizeUrl(url: string): string {
+  return url.replace(/apiKey=[^&]+/, "apiKey=***");
 }
 
 // ========================================
@@ -415,13 +420,13 @@ try {
           for (const [attIndex, attachment] of documentDetail.attachments.entries()) {
             try {
               const url = new URL(`${backlogApiBase}/documents/${doc.id}/attachments/${attachment.id}`);
-              url.searchParams.set("apiKey", apiKey);
+              url.searchParams.set("apiKey", apiKey!);
 
               // Wrap regular fetch in retry manually for custom binary attachments
               const attRes = await withRetry(async () => {
                 const res = await fetch(url.toString());
                 if (!res.ok) {
-                  const err: any = new Error(`Backlog API error: ${res.status}`);
+                  const err: any = new Error(`Backlog API error: ${res.status} for /documents/${doc.id}/attachments/${attachment.id}`);
                   err.status = res.status;
                   throw err;
                 }

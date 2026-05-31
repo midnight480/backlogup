@@ -2,7 +2,6 @@ import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, "");
-  process.env = { ...process.env, ...env };
 
   return {
     root: "./viewer/",
@@ -17,7 +16,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      sourcemap: true,
+      sourcemap: mode !== "production",
       outDir: "../dist/",
       copyPublicDir: true,
     },
