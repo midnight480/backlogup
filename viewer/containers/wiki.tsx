@@ -8,7 +8,10 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import remarkGfm from "remark-gfm";
+import { ExportButtons } from "../components/exportButtons";
 import { useStore } from "../stores";
+import { downloadWikiMarkdown } from "../utils/markdownExport";
+import { exportElementToPdf } from "../utils/pdfExport";
 
 // Tree Node
 interface WikiTreeNode {
@@ -113,6 +116,7 @@ export const Wiki: React.FC = observer(() => {
   const { id: wikiId } = useParams();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const contentRef = React.useRef<HTMLDivElement>(null);
 
   useDidMount(() => {
     wikiStore.fetch();
@@ -198,7 +202,7 @@ export const Wiki: React.FC = observer(() => {
 
               {/* Content Header */}
               <div className="flex justify-between items-start mb-xl pb-6 border-b border-outline-variant">
-                <div>
+                <div className="flex-1 min-w-0">
                   <h1 className="font-headline-lg text-headline-lg text-on-surface mb-2">{wikiStore.wiki.name}</h1>
                   <div className="flex items-center gap-4 text-on-surface-variant text-body-sm">
                     <span className="flex items-center gap-1">
@@ -234,10 +238,24 @@ export const Wiki: React.FC = observer(() => {
                     </div>
                   )}
                 </div>
+                <ExportButtons
+                  disabled={!wikiStore.wiki.id}
+                  onExportMarkdown={() => downloadWikiMarkdown(wikiStore.wiki, wikiStore.textFormattingRule)}
+                  onExportPdf={async () => {
+                    if (!contentRef.current) {
+                      return;
+                    }
+                    await exportElementToPdf({
+                      element: contentRef.current,
+                      filename: wikiStore.wiki.name ?? "wiki",
+                      title: wikiStore.wiki.name,
+                    });
+                  }}
+                />
               </div>
 
               {/* Markdown Content Container */}
-              <div className="markdown-body text-body-lg text-on-surface">
+              <div ref={contentRef} className="markdown-body text-body-lg text-on-surface">
                 {isMarkdown ? (
                   <ReactMarkdown
                     remarkPlugins={[[remarkGfm, { singleTilde: false }]]}

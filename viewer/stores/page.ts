@@ -119,4 +119,13 @@ export class PageStore {
     const start = this.page * this.pageSize;
     return this.filteredPages.slice(start, start + this.pageSize);
   }
+
+  /** CSV エクスポート用（検索フィルター適用後の全件） */
+  get exportableIssues() {
+    return this.filteredPages;
+  }
+
+  get issuesLoaded() {
+    return this.internalPages.length > 0;
+  }
 }

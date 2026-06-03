@@ -79,6 +79,12 @@ export const dict = {
     registeredBy: "Registered By",
     viewInBacklog: "View in Backlog",
     attachment: "Attachment",
+    exportCsv: "Download CSV",
+    exportMarkdown: "Export Markdown",
+    exportPdf: "Export PDF",
+    exporting: "Exporting...",
+    exportCsvDisabled: "Load issues before exporting",
+    exportContentDisabled: "Load content before exporting",
   },
   ja: {
     dashboard: "ダッシュボード",
@@ -155,6 +161,12 @@ export const dict = {
     registeredBy: "登録者",
     viewInBacklog: "Backlogで見る",
     attachment: "添付ファイル",
+    exportCsv: "CSVダウンロード",
+    exportMarkdown: "Markdown出力",
+    exportPdf: "PDF出力",
+    exporting: "出力中...",
+    exportCsvDisabled: "課題の読み込み完了後にダウンロードできます",
+    exportContentDisabled: "コンテンツの読み込み完了後に出力できます",
   },
 };
 

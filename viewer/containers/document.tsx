@@ -10,8 +10,11 @@ import dayjs from "dayjs";
 import { observer } from "mobx-react-lite";
 import React, { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useStore } from "../stores";
+import { ExportButtons } from "../components/exportButtons";
 import { useI18n } from "../i18n";
+import { useStore } from "../stores";
+import { downloadDocumentMarkdown } from "../utils/markdownExport";
+import { exportElementToPdf } from "../utils/pdfExport";
 
 const tiptapExtensions = [
   StarterKit,
@@ -293,6 +296,7 @@ export const Document: React.FC = observer(() => {
   const { documentStore } = useStore();
   const { id: documentId } = useParams();
   const [searchQuery, setSearchQuery] = useState("");
+  const contentRef = React.useRef<HTMLDivElement>(null);
 
   useDidMount(() => {
     documentStore.fetch();
@@ -391,9 +395,25 @@ export const Document: React.FC = observer(() => {
           <div className="flex-1 overflow-y-auto">
             {/* Header */}
             <div className="p-6 border-b border-surface-container-low bg-surface-container-lowest">
-              <div className="flex items-center gap-3 mb-4">
-                {doc.emoji && <span className="text-2xl">{doc.emoji}</span>}
-                <h1 className="text-2xl font-bold text-on-surface leading-tight">{doc.title}</h1>
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  {doc.emoji && <span className="text-2xl">{doc.emoji}</span>}
+                  <h1 className="text-2xl font-bold text-on-surface leading-tight">{doc.title}</h1>
+                </div>
+                <ExportButtons
+                  disabled={!doc.id}
+                  onExportMarkdown={() => downloadDocumentMarkdown(doc, documentStore.comments)}
+                  onExportPdf={async () => {
+                    if (!contentRef.current) {
+                      return;
+                    }
+                    await exportElementToPdf({
+                      element: contentRef.current,
+                      filename: doc.title ?? "document",
+                      title: doc.emoji ? `${doc.emoji} ${doc.title}` : doc.title,
+                    });
+                  }}
+                />
               </div>
 
               {doc.tags && doc.tags.length > 0 && (
@@ -426,7 +446,7 @@ export const Document: React.FC = observer(() => {
             </div>
 
             {/* Tiptap Editor Content */}
-            <div className="p-8 bg-white min-h-[400px]">
+            <div ref={contentRef} className="p-8 bg-white min-h-[400px]">
               <TiptapViewer content={doc.json || ""} />
             </div>
 
