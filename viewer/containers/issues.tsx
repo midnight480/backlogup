@@ -2,18 +2,32 @@ import { useDidMount } from "@better-hooks/lifecycle";
 import dayjs from "dayjs";
 import { observer } from "mobx-react-lite";
 import type React from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useI18n } from "../i18n";
 import { useStore } from "../stores";
+import { downloadIssuesCsv } from "../utils/issueCsv";
 
 export const Issues: React.FC = observer(() => {
   const { pageStore } = useStore();
   const { t } = useI18n();
+  const [projectKey, setProjectKey] = useState<string | undefined>();
 
   useDidMount(() => {
     pageStore.fetch();
     pageStore.generateIndex();
   });
+
+  useEffect(() => {
+    fetch("/assets/configs/project.json")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((project) => setProjectKey(project?.projectKey))
+      .catch(() => {});
+  }, []);
+
+  const handleCsvExport = () => {
+    downloadIssuesCsv(pageStore.exportableIssues, projectKey);
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -50,7 +64,17 @@ export const Issues: React.FC = observer(() => {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCsvExport}
+                disabled={!pageStore.issuesLoaded || pageStore.loadingPages}
+                title={!pageStore.issuesLoaded ? t("exportCsvDisabled") : t("exportCsv")}
+                className="flex items-center gap-1.5 px-3 py-1 text-body-sm font-medium border border-outline-variant rounded-lg hover:bg-surface-container-high transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="material-symbols-outlined text-[18px]">download</span>
+                {t("exportCsv")}
+              </button>
               <button
                 className={`p-1.5 rounded transition-colors ${pageStore.page > 0 ? "hover:bg-surface-container-high cursor-pointer text-on-surface" : "text-outline opacity-50 cursor-not-allowed"}`}
                 onClick={() => pageStore.setPage(Math.max(0, pageStore.page - 1))}
