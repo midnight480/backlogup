@@ -13,5 +13,6 @@ export function downloadText(content: string, filename: string, mimeType = "text
 }
 
 export function sanitizeFilename(name: string): string {
-  return name.replace(/[/\\?%*:|"<>]/g, "_").trim() || "export";
+  const sanitized = name.replace(/[/\\?%*:|"<>]/g, "_").trim();
+  return sanitized.slice(0, 100) || "export";
 }

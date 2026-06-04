@@ -9,6 +9,10 @@ interface PdfExportOptions {
 
 export async function exportElementToPdf({ element, filename, title }: PdfExportOptions): Promise<void> {
   const wrapper = document.createElement("div");
+  wrapper.style.position = "absolute";
+  wrapper.style.left = "-9999px";
+  wrapper.style.top = "0";
+  wrapper.style.width = "800px";
   wrapper.style.padding = "24px";
   wrapper.style.background = "#ffffff";
   wrapper.style.color = "#1f2328";

@@ -23,6 +23,37 @@ function joinNames(items: Array<{ name?: string }> | undefined): string {
   return items.map((item) => item.name ?? "").filter(Boolean).join("; ");
 }
 
+/** リスト・複数選択など、オブジェクト/配列で返るカスタム属性値を表示用文字列に正規化する */
+function normalizeCustomFieldOption(item: unknown): string {
+  if (item == null) {
+    return "";
+  }
+  if (typeof item === "string" || typeof item === "number" || typeof item === "boolean") {
+    return String(item);
+  }
+  if (typeof item === "object") {
+    const option = item as Record<string, unknown>;
+    if (option.name != null && option.name !== "") {
+      return String(option.name);
+    }
+    if (typeof option.value === "string" || typeof option.value === "number") {
+      return String(option.value);
+    }
+    return JSON.stringify(item);
+  }
+  return String(item);
+}
+
+function formatCustomFieldValue(value: unknown): string {
+  if (value == null) {
+    return "";
+  }
+  if (Array.isArray(value)) {
+    return value.map(normalizeCustomFieldOption).filter(Boolean).join("; ");
+  }
+  return normalizeCustomFieldOption(value);
+}
+
 function formatCustomFields(customFields: backlog.Entity.Issue.Issue["customFields"]): string {
   if (!customFields || customFields.length === 0) {
     return "";
@@ -30,8 +61,7 @@ function formatCustomFields(customFields: backlog.Entity.Issue.Issue["customFiel
   return customFields
     .map((field) => {
       const name = field.name ?? field.id;
-      const value = field.value ?? "";
-      return `${name}: ${value}`;
+      return `${name}: ${formatCustomFieldValue(field.value)}`;
     })
     .join(" | ");
 }
@@ -69,7 +99,7 @@ function issueToRow(issue: backlog.Entity.Issue.Issue): string[] {
     issue.priority?.name ?? "",
     issue.assignee?.name ?? "",
     joinNames(issue.category),
-    issue.milestone?.name ?? "",
+    joinNames(issue.milestone),
     joinNames(issue.versions),
     issue.resolution?.name ?? "",
     issue.startDate ? dayjs(issue.startDate).format("YYYY/MM/DD") : "",
