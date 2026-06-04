@@ -30,10 +30,12 @@ export class WikiStore {
         fetch("/assets/configs/wiki-tags.json"),
         fetch("/assets/configs/project.json"),
       ]);
-      this.wikis = await listRes.json();
-      this.tags = await tagsRes.json();
-      const project = await projectRes.json();
-      this.textFormattingRule = project.textFormattingRule || "markdown";
+      if (listRes.ok) this.wikis = await listRes.json();
+      if (tagsRes.ok) this.tags = await tagsRes.json();
+      if (projectRes.ok) {
+        const project = await projectRes.json();
+        this.textFormattingRule = project.textFormattingRule || "markdown";
+      }
     } finally {
       this.loadingList = false;
     }
@@ -50,8 +52,8 @@ export class WikiStore {
         fetch(`/assets/wikis/${wikiId}/wiki.json`),
         fetch(`/assets/wikis/${wikiId}/stars.json`),
       ]);
-      this.wiki = await wikiRes.json();
-      this.stars = await starsRes.json();
+      if (wikiRes.ok) this.wiki = await wikiRes.json();
+      if (starsRes.ok) this.stars = await starsRes.json();
     } finally {
       this.loadingDetail = false;
     }

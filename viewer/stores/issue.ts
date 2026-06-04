@@ -23,8 +23,8 @@ export class IssueStore {
       fetch(`/assets/issues/${issueId}/issue.json`),
       fetch(`/assets/issues/${issueId}/comments.json`),
     ]);
-    this.issue = await issue.json();
-    this.comments = await comments.json();
+    if (issue.ok) this.issue = await issue.json();
+    if (comments.ok) this.comments = await comments.json();
   }
 
   public clear() {

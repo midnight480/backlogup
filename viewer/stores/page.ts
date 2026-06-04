@@ -32,6 +32,7 @@ export class PageStore {
 
     try {
       const pageInfo = await fetch("/assets/configs/pages.json");
+      if (!pageInfo.ok) return;
       const { start, end } = await pageInfo.json();
       this.totalPage = end;
 
@@ -40,6 +41,7 @@ export class PageStore {
         this.currentDownloading = i;
 
         const res = await fetch(`/assets/pages/${i}.json`);
+        if (!res.ok) continue;
         const page: backlog.Entity.Issue.Issue[] = await res.json();
         pages.push(...page);
 
@@ -64,6 +66,7 @@ export class PageStore {
 
     try {
       const res = await fetch("/assets/configs/search-index.json");
+      if (!res.ok) return;
       const searchIndexes = await res.json();
 
       this.searchIndex = new FlexSearchDocument({
