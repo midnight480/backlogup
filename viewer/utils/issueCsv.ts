@@ -66,7 +66,100 @@ function formatCustomFields(customFields: backlog.Entity.Issue.Issue["customFiel
     .join(" | ");
 }
 
-const CSV_HEADERS = [
+const CHANGE_LOG_FIELD_LABELS: Record<string, string> = {
+  notification: "お知らせ",
+  limitDate: "期限日",
+  assigner: "担当者",
+  parentIssue: "親課題",
+  description: "詳細",
+  component: "カテゴリー",
+  resolution: "完了理由",
+  milestone: "マイルストーン",
+  priority: "優先度",
+  issueType: "種別",
+  estimatedHours: "予定時間",
+  actualHours: "実績時間",
+  status: "状態",
+  attachment: "添付ファイル",
+  summary: "件名",
+};
+
+function formatNotificationType(type: string): string {
+  if (type === "issue.create") {
+    return "課題の追加";
+  }
+  return type;
+}
+
+function formatChangeLogLine(changeLog: backlog.Entity.Issue.ChangeLog): string {
+  const label = CHANGE_LOG_FIELD_LABELS[changeLog.field] ?? changeLog.field;
+  if (changeLog.field === "notification") {
+    const type = changeLog.notificationInfo?.type;
+    return `${label}: ${type ? formatNotificationType(type) : ""}`;
+  }
+  const original = changeLog.originalValue ?? "未設定";
+  const next = changeLog.newValue ?? (changeLog.field === "attachment" ? "削除" : "未設定");
+  return `${label}: ${original} → ${next}`;
+}
+
+export function sortIssueComments(comments: backlog.Entity.Issue.Comment[]): backlog.Entity.Issue.Comment[] {
+  return comments.slice().sort((a, b) => (a.id > b.id ? 1 : -1));
+}
+
+export function formatCommentForCsv(comment: backlog.Entity.Issue.Comment): string {
+  const lines: string[] = [];
+  const author = comment.createdUser?.name ?? "";
+  lines.push(`${author} (${formatDate(comment.created)})`);
+  if (comment.changeLog && comment.changeLog.length > 0) {
+    for (const changeLog of comment.changeLog) {
+      lines.push(formatChangeLogLine(changeLog));
+    }
+  }
+  if (comment.content) {
+    lines.push(comment.content);
+  }
+  if (comment.created !== comment.updated) {
+    lines.push("（編集済み）");
+  }
+  return lines.join("\n");
+}
+
+async function fetchIssueComments(issueId: string | number): Promise<backlog.Entity.Issue.Comment[]> {
+  try {
+    const res = await fetch(`/assets/issues/${issueId}/comments.json`);
+    if (!res.ok) {
+      return [];
+    }
+    return await res.json();
+  } catch {
+    return [];
+  }
+}
+
+export async function loadCommentsByIssueId(
+  issues: backlog.Entity.Issue.Issue[],
+): Promise<Map<string, backlog.Entity.Issue.Comment[]>> {
+  const entries = await Promise.all(
+    issues.map(async (issue) => {
+      const id = String(issue.id);
+      const comments = sortIssueComments(await fetchIssueComments(id));
+      return [id, comments] as const;
+    }),
+  );
+  return new Map(entries);
+}
+
+function maxCommentCount(commentsByIssueId: Map<string, backlog.Entity.Issue.Comment[]>): number {
+  let max = 0;
+  for (const comments of commentsByIssueId.values()) {
+    if (comments.length > max) {
+      max = comments.length;
+    }
+  }
+  return max;
+}
+
+const CSV_BASE_HEADERS = [
   "課題キー",
   "種別",
   "件名",
@@ -89,7 +182,15 @@ const CSV_HEADERS = [
   "カスタム属性",
 ] as const;
 
-function issueToRow(issue: backlog.Entity.Issue.Issue): string[] {
+function buildCsvHeaders(maxComments: number): string[] {
+  const headers: string[] = [...CSV_BASE_HEADERS];
+  for (let i = 1; i <= maxComments; i++) {
+    headers.push(`コメント${i}`);
+  }
+  return headers;
+}
+
+function issueToBaseRow(issue: backlog.Entity.Issue.Issue): string[] {
   return [
     issue.issueKey ?? "",
     issue.issueType?.name ?? "",
@@ -114,15 +215,38 @@ function issueToRow(issue: backlog.Entity.Issue.Issue): string[] {
   ];
 }
 
-export function issuesToCsv(issues: backlog.Entity.Issue.Issue[]): string {
-  const headerLine = CSV_HEADERS.map(escapeCsvField).join(",");
-  const dataLines = issues.map((issue) => issueToRow(issue).map(escapeCsvField).join(","));
+function issueToRow(
+  issue: backlog.Entity.Issue.Issue,
+  comments: backlog.Entity.Issue.Comment[],
+  maxComments: number,
+): string[] {
+  const row = issueToBaseRow(issue);
+  for (let i = 0; i < maxComments; i++) {
+    const comment = comments[i];
+    row.push(comment ? formatCommentForCsv(comment) : "");
+  }
+  return row;
+}
+
+export function issuesToCsv(
+  issues: backlog.Entity.Issue.Issue[],
+  commentsByIssueId: Map<string, backlog.Entity.Issue.Comment[]>,
+  maxComments: number,
+): string {
+  const headers = buildCsvHeaders(maxComments);
+  const headerLine = headers.map(escapeCsvField).join(",");
+  const dataLines = issues.map((issue) => {
+    const comments = commentsByIssueId.get(String(issue.id)) ?? [];
+    return issueToRow(issue, comments, maxComments).map(escapeCsvField).join(",");
+  });
   return [headerLine, ...dataLines].join("\n");
 }
 
-export function downloadIssuesCsv(issues: backlog.Entity.Issue.Issue[], projectKey?: string): void {
+export async function downloadIssuesCsv(issues: backlog.Entity.Issue.Issue[], projectKey?: string): Promise<void> {
+  const commentsByIssueId = await loadCommentsByIssueId(issues);
+  const maxComments = maxCommentCount(commentsByIssueId);
   const prefix = projectKey ? `${projectKey}-` : "";
   const filename = `${sanitizeFilename(`${prefix}issues`)}.csv`;
-  const csv = `\uFEFF${issuesToCsv(issues)}`;
+  const csv = `\uFEFF${issuesToCsv(issues, commentsByIssueId, maxComments)}`;
   downloadText(csv, filename, "text/csv;charset=utf-8");
 }

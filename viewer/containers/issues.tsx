@@ -12,6 +12,7 @@ export const Issues: React.FC = observer(() => {
   const { pageStore } = useStore();
   const { t } = useI18n();
   const [projectKey, setProjectKey] = useState<string | undefined>();
+  const [exportingCsv, setExportingCsv] = useState(false);
 
   useDidMount(() => {
     pageStore.fetch();
@@ -25,8 +26,16 @@ export const Issues: React.FC = observer(() => {
       .catch(() => {});
   }, []);
 
-  const handleCsvExport = () => {
-    downloadIssuesCsv(pageStore.exportableIssues, projectKey);
+  const handleCsvExport = async () => {
+    if (exportingCsv) {
+      return;
+    }
+    setExportingCsv(true);
+    try {
+      await downloadIssuesCsv(pageStore.exportableIssues, projectKey);
+    } finally {
+      setExportingCsv(false);
+    }
   };
 
   return (
@@ -68,12 +77,12 @@ export const Issues: React.FC = observer(() => {
               <button
                 type="button"
                 onClick={handleCsvExport}
-                disabled={!pageStore.issuesLoaded || pageStore.loadingPages}
+                disabled={!pageStore.issuesLoaded || pageStore.loadingPages || exportingCsv}
                 title={!pageStore.issuesLoaded ? t("exportCsvDisabled") : t("exportCsv")}
                 className="flex items-center gap-1.5 px-3 py-1 text-body-sm font-medium border border-outline-variant rounded-lg hover:bg-surface-container-high transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="material-symbols-outlined text-[18px]">download</span>
-                {t("exportCsv")}
+                <span className="material-symbols-outlined text-[18px]">{exportingCsv ? "hourglass_empty" : "download"}</span>
+                {exportingCsv ? t("exporting") : t("exportCsv")}
               </button>
               <button
                 className={`p-1.5 rounded transition-colors ${pageStore.page > 0 ? "hover:bg-surface-container-high cursor-pointer text-on-surface" : "text-outline opacity-50 cursor-not-allowed"}`}
