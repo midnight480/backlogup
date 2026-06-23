@@ -13,6 +13,7 @@ import { Dashboard } from "./containers/dashboard";
 import { Document } from "./containers/document";
 import { Issue } from "./containers/issue";
 import { Issues } from "./containers/issues";
+import { SharedFiles } from "./containers/sharedFiles";
 import { Wiki } from "./containers/wiki";
 import { I18nProvider, Lang, useI18n } from "./i18n";
 
@@ -78,6 +79,16 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 {t("documents")}
               </NavLink>
             )}
+            {project?.useFileSharing !== false && (
+              <NavLink
+                to="/shared-files"
+                className={({ isActive }) =>
+                  `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? "text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400" : "text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800"}`
+                }
+              >
+                {t("sharedFiles")}
+              </NavLink>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -131,6 +142,7 @@ createRoot(document.querySelector("#app")!).render(
           <Route path="/issues/:id" element={<Issue />} />
           <Route path="/wikis/:id" element={<Wiki />} />
           <Route path="/documents/:id" element={<Document />} />
+          <Route path="/shared-files" element={<SharedFiles />} />
         </Routes>
       </Layout>
     </BrowserRouter>

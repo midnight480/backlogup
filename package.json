@@ -8,6 +8,8 @@
     "backup": "run-s backup:issue backup:textsearch",
     "backup:issue": "tsx scripts/backlog/index.mts",
     "backup:textsearch": "tsx scripts/textsearch/index.mts",
+    "download:sharedfiles": "tsx scripts/backlog/download-shared-files.mts",
+    "dev": "vite",
     "build": "vite build"
   },
   "author": "COMMON CREATION, Co., Ltd.",

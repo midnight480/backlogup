@@ -40,6 +40,13 @@ export const dict = {
     sharedFilesNoteTitle: "Note on Shared Files",
     sharedFilesNoteDesc: "Although `useFileSharing: true` is set, automatic backup by the tool is not comprehensive due to API limitations. Data in shared files requires manual verification and export.",
     sharedFiles: "Shared Files",
+    folder: "Folder",
+    fileName: "Name",
+    size: "Size",
+    filesUnit: "files",
+    noSharedFiles: "No shared files. Run `npm run backup` to create the list.",
+    sharedFilesDownloadHint:
+      "This is the list of shared files. To open a file here, download it first with `npm run download:sharedfiles` (individually or in bulk).",
     gitRepositories: "Git Repositories",
     cloneAllBranches: "Clone all branches",
 
@@ -122,6 +129,13 @@ export const dict = {
     sharedFilesNoteTitle: "ファイル共有（共有ファイル）に関する注意",
     sharedFilesNoteDesc: "`useFileSharing: true` 設定ですが、APIの制限によりツールによる自動バックアップは汎用的ではありません。共有ファイル内のデータは、手動での確認とエクスポートが必要です。",
     sharedFiles: "共有ファイル (Shared Files)",
+    folder: "フォルダ",
+    fileName: "ファイル名",
+    size: "サイズ",
+    filesUnit: "件",
+    noSharedFiles: "共有ファイルがありません。`npm run backup` を実行して一覧を作成してください。",
+    sharedFilesDownloadHint:
+      "共有ファイルの一覧です。ここでファイルを開くには、先に `npm run download:sharedfiles`（個別／一括）でダウンロードしてください。",
     gitRepositories: "Git Repositories",
     cloneAllBranches: "すべてのブランチをクローンする",
 

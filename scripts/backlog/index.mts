@@ -15,6 +15,7 @@ const distIssuePages = resolve(dist, "pages");
 const distIssues = resolve(dist, "issues");
 const distWikis = resolve(dist, "wikis");
 const distDocuments = resolve(dist, "documents");
+const distSharedFiles = resolve(dist, "shared-files");
 
 if (process.env.CLEAN_BACKUP === "true") {
   try {
@@ -27,6 +28,7 @@ await mkdir(distIssuePages, { recursive: true });
 await mkdir(distIssues, { recursive: true });
 await mkdir(distWikis, { recursive: true });
 await mkdir(distDocuments, { recursive: true });
+await mkdir(distSharedFiles, { recursive: true });
 
 config({ override: true });
 
@@ -452,6 +454,79 @@ try {
     console.log("ドキュメント機能が無効になっているか権限がないため、スキップします。");
   } else {
     console.error("ドキュメントバックアップ中にエラーが発生しました:", e.message || e);
+  }
+}
+}
+
+// ========================================
+// 共有ファイル 一覧取得
+// ========================================
+// 実ファイルはここではダウンロードせず、フォルダ階層を再帰的に走査して
+// 一覧 (list.json) のみを作成する。件数が多くなりがちなので、
+// 実ファイルのダウンロードは別コマンド (npm run download:sharedfiles) で
+// 個別／一括に、途中再開できる形で行う。
+
+console.log("--- 共有ファイル 一覧取得開始 ---");
+if (project.useFileSharing === false) {
+  console.log("ファイル共有機能が無効になっています。スキップします。");
+} else {
+
+interface SharedFileMeta {
+  id: number;
+  type: string;
+  dir: string;
+  name: string;
+  size: number;
+  updated: string;
+}
+
+try {
+  const allSharedFiles: SharedFileMeta[] = [];
+
+  // ディレクトリツリーを再帰的に走査して、ファイルのメタデータを集める。
+  // path はAPIに渡す相対パス（ルートは ""）。
+  async function walkSharedFiles(path: string): Promise<void> {
+    const count = 100;
+    for (let offset = 0; ; ) {
+      const items = await withRetry(() => backlog.getSharedFiles(projectKey!, path, { count, offset }));
+      if (items.length === 0) break;
+
+      for (const item of items) {
+        const isDir = item.type === "directory" || item.type === "dir";
+        // item.dir は親ディレクトリ("/" や "/設計書/")、item.name はその名前。
+        // 余分なスラッシュを畳んで先頭スラッシュを除いた相対パスにする。
+        const rel = `${item.dir}/${item.name}`.replace(/\/+/g, "/").replace(/^\//, "");
+
+        if (isDir) {
+          await walkSharedFiles(rel);
+        } else {
+          allSharedFiles.push({
+            id: item.id,
+            type: item.type,
+            dir: item.dir,
+            name: item.name,
+            size: item.size,
+            updated: item.updated,
+          });
+        }
+      }
+
+      offset += items.length;
+      if (items.length < count) break;
+    }
+  }
+
+  await walkSharedFiles("");
+
+  await writeFile(resolve(distSharedFiles, "list.json"), JSON.stringify(allSharedFiles), { encoding: "utf-8" });
+  console.log(`--- 共有ファイル 一覧取得完了 (${allSharedFiles.length} 件) ---`);
+  console.log("実ファイルのダウンロードは 'npm run download:sharedfiles' で実行してください。");
+} catch (e: any) {
+  const status = e.response?.status || e.status || e._status || 0;
+  if (status === 403 || status === 404) {
+    console.log("ファイル共有機能が無効になっているか権限がないため、スキップします。");
+  } else {
+    console.error("共有ファイル一覧取得中にエラーが発生しました:", e.message || e);
   }
 }
 }
