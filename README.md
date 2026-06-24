@@ -88,8 +88,13 @@ npm run download:sharedfiles -- --id 123,456
 npm run download:sharedfiles -- --path Designs
 ```
 
-- Files that already exist are skipped by default, so you can safely interrupt and resume even with a large number of files. Use `--force` to re-download.
+- Files already downloaded (matching byte size) are skipped by default, so you can safely interrupt and resume even with many files. Writes are atomic via a temp file, so an interrupted run never leaves a partial file behind. Use `--force` to re-download.
 - Downloaded files are saved under `dist/assets/shared-files/`, preserving the **original folder structure and file names** from Backlog.
+- The command exits with a non-zero status if any file fails, so automation won't treat an incomplete archive as success.
+
+### Selecting and downloading from the viewer
+
+When you start the viewer with `npm run dev`, the "Shared Files" tab lets you check files in the list and fetch them with the "Download selected" button. The dev server calls the Backlog API **server-side** using `BACKLOG_API_KEY` from `.env`, so the API key is never exposed to the browser. Fetched files are saved to the same `dist/assets/shared-files/` and reflected in the list immediately (available only while `npm run dev` is running).
 
 ## Building the Viewer
 

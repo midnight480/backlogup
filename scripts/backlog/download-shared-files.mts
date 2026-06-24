@@ -2,7 +2,7 @@ import "isomorphic-form-data";
 import "isomorphic-fetch";
 import * as backlogjs from "backlog-js";
 import { config } from "dotenv";
-import { access, mkdir, readFile, writeFile } from "fs/promises";
+import { mkdir, readFile, rename, stat, unlink, writeFile } from "fs/promises";
 import { dirname, resolve, sep } from "path";
 import { fileURLToPath } from "url";
 
@@ -119,12 +119,12 @@ function resolveSharedFilePath(relPath: string): string {
   return target;
 }
 
-async function fileExists(p: string): Promise<boolean> {
+// ファイルのバイト数を返す。存在しなければ -1。
+async function fileSize(p: string): Promise<number> {
   try {
-    await access(p);
-    return true;
+    return (await stat(p)).size;
   } catch {
-    return false;
+    return -1;
   }
 }
 
@@ -163,12 +163,24 @@ const force = flags.has("--force");
 const pathArgIndex = argv.indexOf("--path");
 const pathFilter = pathArgIndex >= 0 ? argv[pathArgIndex + 1] : undefined;
 
-const ids = argv.filter((a) => /^\d+$/.test(a)).map(Number);
+// 位置引数の数値IDを抽出する。--path / --id の「値」を誤ってIDに混入させないよう、
+// 値を取るフラグの次の引数はスキップする。
+const ids: number[] = [];
+for (let i = 0; i < argv.length; i++) {
+  const arg = argv[i];
+  if (arg === "--path" || arg === "--id") {
+    i++;
+    continue;
+  }
+  if (/^\d+$/.test(arg)) {
+    ids.push(Number(arg));
+  }
+}
 const idsArgIndex = argv.indexOf("--id");
 if (idsArgIndex >= 0 && argv[idsArgIndex + 1]) {
   for (const s of argv[idsArgIndex + 1].split(",")) {
     const n = Number(s.trim());
-    if (Number.isFinite(n)) ids.push(n);
+    if (Number.isFinite(n) && !ids.includes(n)) ids.push(n);
   }
 }
 
@@ -235,16 +247,29 @@ await Promise.all(
       }
 
       try {
-        // 既にダウンロード済み（ファイルが存在）ならスキップ。
-        // 中断後の再実行でそのまま続きから取得できる。--force で再取得。
-        if (!force && (await fileExists(targetPath))) {
-          console.log(`[${rel}] 取得済み (スキップ)`);
-          skipped++;
-          return;
+        // 既にダウンロード済みならスキップ。中断後の再実行で続きから取得できる。
+        // 存在チェックだけだと、書き込み途中で中断された不完全ファイルを「取得済み」と
+        // 誤判定してしまうため、バイト数が一致する場合のみスキップする。--force で再取得。
+        if (!force) {
+          const existingSize = await fileSize(targetPath);
+          if (existingSize >= 0 && existingSize === f.size) {
+            console.log(`[${rel}] 取得済み (スキップ)`);
+            skipped++;
+            return;
+          }
         }
         await mkdir(dirname(targetPath), { recursive: true });
         const data = await withRetry(() => backlog.getSharedFile(projectKey!, f.id));
-        await writeFile(targetPath, data.body, { encoding: "binary" });
+        // 一時ファイルに書き込んでから rename することで、中断時に不完全なファイルが
+        // 最終パスへ残らないようにする（同一FS上の rename はアトミック）。
+        const tempPath = `${targetPath}.part`;
+        try {
+          await writeFile(tempPath, data.body, { encoding: "binary" });
+          await rename(tempPath, targetPath);
+        } catch (e) {
+          await unlink(tempPath).catch(() => {});
+          throw e;
+        }
         done++;
         console.log(`[${rel}] 完了`);
       } catch (e) {
@@ -256,3 +281,8 @@ await Promise.all(
 );
 
 console.log(`--- 共有ファイル ダウンロード完了: 成功 ${done} / スキップ ${skipped} / 失敗 ${failed} ---`);
+
+// 1件でも失敗した場合は非0終了にする。自動化が不完全なアーカイブを成功とみなさないようにするため。
+if (failed > 0) {
+  process.exitCode = 1;
+}

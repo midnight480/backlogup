@@ -11,7 +11,7 @@ export const dict = {
     documents: "Documents",
     settings: "Settings",
     localArchive: "Local Archive",
-    notice: "Notice: Subversion, Git, and generic files are NOT backed up.",
+    notice: "Notice: Subversion and Git repositories are NOT backed up.",
     trackingNotice: "Usage data (OS, browser, region) is collected anonymously to improve the tool.",
     searchPlaceholder: "Search archives...",
     close: "Close",
@@ -46,7 +46,14 @@ export const dict = {
     filesUnit: "files",
     noSharedFiles: "No shared files. Run `npm run backup` to create the list.",
     sharedFilesDownloadHint:
-      "This is the list of shared files. To open a file here, download it first with `npm run download:sharedfiles` (individually or in bulk).",
+      "This is the list of shared files. Check the ones you want and press “Download selected” to fetch them via the Backlog API (while `npm run dev` is running).",
+    downloadSelected: "Download selected",
+    downloadInProgress: "Downloading...",
+    notDownloaded: "Not downloaded",
+    downloadDevOnly:
+      "On-screen download is only available while `npm run dev` is running with BACKLOG_API_KEY configured. You can also fetch files via `npm run download:sharedfiles`.",
+    downloadSucceeded: "downloaded",
+    downloadFailed: "failed",
     gitRepositories: "Git Repositories",
     cloneAllBranches: "Clone all branches",
 
@@ -100,7 +107,7 @@ export const dict = {
     documents: "ドキュメント",
     settings: "設定",
     localArchive: "ローカルアーカイブ",
-    notice: "注意: Subversion, Git, 共有ファイルはバックアップされません。",
+    notice: "注意: Subversion, Git リポジトリはバックアップされません。",
     trackingNotice: "利用状況（OS、ブラウザ、地域など）はツール改善のため匿名で収集されます。",
     searchPlaceholder: "アーカイブを検索...",
     close: "閉じる",
@@ -135,7 +142,14 @@ export const dict = {
     filesUnit: "件",
     noSharedFiles: "共有ファイルがありません。`npm run backup` を実行して一覧を作成してください。",
     sharedFilesDownloadHint:
-      "共有ファイルの一覧です。ここでファイルを開くには、先に `npm run download:sharedfiles`（個別／一括）でダウンロードしてください。",
+      "共有ファイルの一覧です。取得したいファイルにチェックを入れて「選択をダウンロード」を押すと、Backlog API から取得します（`npm run dev` 起動中）。",
+    downloadSelected: "選択をダウンロード",
+    downloadInProgress: "ダウンロード中...",
+    notDownloaded: "未取得",
+    downloadDevOnly:
+      "画面からのダウンロードは、BACKLOG_API_KEY を設定した `npm run dev` 起動中のみ利用できます。`npm run download:sharedfiles` でも取得できます。",
+    downloadSucceeded: "件取得",
+    downloadFailed: "件失敗",
     gitRepositories: "Git Repositories",
     cloneAllBranches: "すべてのブランチをクローンする",
 
