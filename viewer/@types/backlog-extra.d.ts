@@ -31,6 +31,19 @@ interface BacklogDocumentTag {
   name: string;
 }
 
+/**
+ * 共有ファイル一覧 (shared-files/list.json) のエントリ。
+ * バックアップ時に scripts/backlog/index.mts が出力する。
+ */
+interface BacklogSharedFile {
+  id: number;
+  type: string;
+  dir: string;
+  name: string;
+  size: number;
+  updated: string;
+}
+
 interface BacklogDocumentUser {
   id: number;
   userId: string;

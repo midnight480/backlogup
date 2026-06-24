@@ -17,6 +17,7 @@ The backed-up data can be browsed using a lightweight local viewer.
   - **Issues**: Issue details, status, priority, custom attributes, comments, attachments
   - **Wiki**: Wiki page content, stars, attachments, tags
   - **Documents**: Folder/file tree structure, document content, comments (including replies), attachments
+  - **Shared Files**: Recursively traverses the file-sharing area and builds a file list (`shared-files/list.json`). Because there can be many files, the actual files are **not** downloaded by `npm run backup`; instead they are fetched with the separate `npm run download:sharedfiles` command, individually or in bulk, with resumable downloads ([details](#downloading-shared-files)). Files are saved preserving the original folder structure and file names.
   - **Project Settings**: Issue types, categories, milestones, member list, **License Info** (plan type, user limits, storage capacity, etc.)
   - **User Information**: User metadata, profile icons
 - **Incremental Updates**: If existing data is found, only the updated portions are fetched, significantly speeding up subsequent backups.
@@ -64,6 +65,36 @@ To completely delete existing backup data and start a fresh backup, run the comm
 ```bash
 CLEAN_BACKUP=true npm run backup
 ```
+
+## Downloading Shared Files
+
+Shared files can be numerous, and the Web UI's bulk download sometimes times out. This tool separates "building the list" from "downloading the actual files", fetching one file at a time via the API for reliability (this increases the number of API calls, but rate limits are handled automatically with a 60-second wait and retry).
+
+1. Running `npm run backup` creates **only the list** of shared files at `dist/assets/shared-files/list.json` (no actual files are downloaded at this point).
+2. Then download the actual files with `npm run download:sharedfiles`.
+
+```bash
+# Show the list (ID, path, size)
+npm run download:sharedfiles -- --list
+
+# Download everything (resumes from where it left off if interrupted)
+npm run download:sharedfiles -- --all
+
+# Download only specific files by ID (individually)
+npm run download:sharedfiles -- 123 456
+npm run download:sharedfiles -- --id 123,456
+
+# Bulk-download files whose path contains a given string (e.g. a specific folder)
+npm run download:sharedfiles -- --path Designs
+```
+
+- Files already downloaded (matching byte size) are skipped by default, so you can safely interrupt and resume even with many files. Writes are atomic via a temp file, so an interrupted run never leaves a partial file behind. Use `--force` to re-download.
+- Downloaded files are saved under `dist/assets/shared-files/`, preserving the **original folder structure and file names** from Backlog.
+- The command exits with a non-zero status if any file fails, so automation won't treat an incomplete archive as success.
+
+### Selecting and downloading from the viewer
+
+When you start the viewer with `npm run dev`, the "Shared Files" tab lets you check files in the list and fetch them with the "Download selected" button. The dev server calls the Backlog API **server-side** using `BACKLOG_API_KEY` from `.env`, so the API key is never exposed to the browser. Fetched files are saved to the same `dist/assets/shared-files/` and reflected in the list immediately (available only while `npm run dev` is running).
 
 ## Building the Viewer
 

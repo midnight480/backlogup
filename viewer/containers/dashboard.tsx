@@ -160,7 +160,7 @@ export const Dashboard: React.FC = () => {
           <h3 className="font-headline-sm">リポジトリ・外部連携ガイド</h3>
         </div>
         <div className="p-xl flex flex-col gap-xl">
-          {(project?.useSubversion || project?.useFileSharing) && (
+          {project?.useSubversion && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-xl items-start">
               {project?.useSubversion && (
                 <div className="space-y-md">
@@ -186,41 +186,11 @@ export const Dashboard: React.FC = () => {
                   </div>
                 </div>
               )}
-
-              {project?.useFileSharing && (
-                <div className="space-y-md">
-                  <div className="flex items-center gap-sm">
-                    <span className="text-on-surface font-bold">{t("sharedFiles")}</span>
-                    <span className="bg-secondary/10 text-[#006e2b] text-[10px] font-black px-1.5 rounded border border-[#006e2b]/20 uppercase">
-                      Enabled
-                    </span>
-                  </div>
-                  <p className="text-body-sm text-on-surface-variant">{t("browserSharedFiles")}</p>
-                  <div className="bg-surface-container-low p-md rounded-lg border border-outline-variant group relative">
-                    <a
-                      href={`https://${backlogHost}/file/${projectKey}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-code-sm text-primary hover:underline block break-all"
-                    >
-                      https://{backlogHost}/file/{projectKey}
-                    </a>
-                    <button
-                      className="absolute top-2 right-2 text-outline hover:text-primary transition-colors"
-                      onClick={() => copyToClipboard(`https://${backlogHost}/file/${projectKey}`, "file-sharing-link")}
-                    >
-                      <span className="material-symbols-outlined text-[18px]">
-                        {copiedId === "file-sharing-link" ? "check" : "content_copy"}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
           {project?.useGit && (
-            <div className={`space-y-md ${project?.useSubversion || project?.useFileSharing ? "border-t border-[#D0D7DE] pt-xl" : ""}`}>
+            <div className={`space-y-md ${project?.useSubversion ? "border-t border-[#D0D7DE] pt-xl" : ""}`}>
               <div className="flex items-center gap-sm">
                 <span className="text-on-surface font-bold">{t("gitRepositories")}</span>
                 <span className="bg-secondary/10 text-[#006e2b] text-[10px] font-black px-1.5 rounded border border-[#006e2b]/20 uppercase">
@@ -292,14 +262,6 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
-      </div>
-
-      <div className="bg-[#ffdad6]/20 border-t border-[#ba1a1a]/10 p-xl flex items-start gap-md rounded-b-xl">
-        <span className="material-symbols-outlined text-[#ba1a1a]">warning</span>
-        <div>
-          <p className="font-bold text-on-background">{t("sharedFilesNoteTitle")}</p>
-          <p className="text-body-sm text-on-surface-variant mt-xs">{t("sharedFilesNoteDesc")}</p>
         </div>
       </div>
     </div>
