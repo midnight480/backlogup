@@ -1,6 +1,25 @@
+import { readdir, readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import type * as backlogjs from "backlog-js";
-import { readdir, readFile } from "fs/promises";
-import { resolve } from "path";
+
+interface WikiListItem {
+  id: number;
+  name: string;
+  [key: string]: unknown;
+}
+
+interface WikiDetail {
+  id: number;
+  name: string;
+  content?: string;
+  [key: string]: unknown;
+}
+
+interface TargetWiki {
+  id: number;
+  name: string;
+  [key: string]: unknown;
+}
 
 export async function migrateWikis(
   targetBacklog: backlogjs.Backlog,
@@ -10,11 +29,11 @@ export async function migrateWikis(
   limit: <T>(fn: () => Promise<T>) => Promise<T>,
 ): Promise<void> {
   console.log("--- Wiki 移行開始 ---");
-  let wikisList: Array<any> = [];
+  let wikisList: WikiListItem[] = [];
   try {
     const listContent = await readFile(resolve(wikisDir, "list.json"), "utf-8");
     wikisList = JSON.parse(listContent);
-  } catch (e) {
+  } catch (_e) {
     console.log("Wiki リストが存在しないか読み込めないため、Wiki 移行をスキップします。");
     return;
   }
@@ -25,27 +44,30 @@ export async function migrateWikis(
   }
 
   // ターゲットプロジェクトの既存 Wiki 一覧を取得
-  let targetWikis: Array<any> = [];
+  let targetWikis: TargetWiki[] = [];
   try {
-    targetWikis = await withRetry(() => targetBacklog.getWikis({ projectIdOrKey: targetProjectId }));
-  } catch (e) {
-    console.warn("ターゲットスペースの Wiki 一覧取得に失敗しました（Wiki機能が無効の可能性があります）。", e);
+    targetWikis = (await withRetry(() => targetBacklog.getWikis({ projectIdOrKey: targetProjectId }))) as TargetWiki[];
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.warn("ターゲットスペースの Wiki 一覧取得に失敗しました（Wiki機能が無効の可能性があります）。", errMsg);
     return;
   }
 
-  const targetWikiByName = new Map<string, any>(targetWikis.map((w: any) => [w.name.trim(), w]));
+  const targetWikiByName = new Map<string, TargetWiki>(targetWikis.map((w) => [w.name.trim(), w]));
 
   for (const wikiListItem of wikisList) {
     await limit(async () => {
       const srcWikiDir = resolve(wikisDir, `${wikiListItem.id}`);
       const wikiJsonPath = resolve(srcWikiDir, "wiki.json");
-      let wikiData: any = null;
+      let wikiData: WikiDetail | null = null;
       try {
         const wikiJson = await readFile(wikiJsonPath, "utf-8");
         wikiData = JSON.parse(wikiJson);
-      } catch (e) {
+      } catch (_e) {
         return;
       }
+
+      if (!wikiData) return;
 
       const wikiName = wikiData.name;
       console.log(`[Wiki] 移行中: '${wikiName}'...`);
@@ -58,39 +80,39 @@ export async function migrateWikis(
         for (const file of attFiles) {
           const filePath = resolve(attachmentsDir, file);
           const fileBuffer = await readFile(filePath);
-          const uploaded = await withRetry(() =>
+          const uploaded = (await withRetry(() =>
             targetBacklog.postSpaceAttachment({
               filename: file,
               file: fileBuffer,
             }),
-          );
+          )) as { id: number };
           attachmentIds.push(uploaded.id);
         }
-      } catch (e) {
+      } catch (_e) {
         // 添付ファイルが無い場合はスルー
       }
 
       let wikiId: number;
-      if (targetWikiByName.has(wikiName.trim())) {
-        const existing = targetWikiByName.get(wikiName.trim())!;
+      const existing = targetWikiByName.get(wikiName.trim());
+      if (existing) {
         wikiId = existing.id;
         await withRetry(() =>
           targetBacklog.patchWiki(wikiId, {
             name: wikiName,
-            content: wikiData.content || "",
+            content: wikiData?.content || "",
             mailNotify: false,
           }),
         );
         console.log(`[Wiki] 既存更新: '${wikiName}' (ID: ${wikiId})`);
       } else {
-        const created = await withRetry(() =>
+        const created = (await withRetry(() =>
           targetBacklog.postWiki({
             projectId: targetProjectId,
             name: wikiName,
-            content: wikiData.content || "",
+            content: wikiData?.content || "",
             mailNotify: false,
           }),
-        );
+        )) as { id: number };
         wikiId = created.id;
         console.log(`[Wiki] 新規作成: '${wikiName}' (ID: ${wikiId})`);
       }
@@ -99,7 +121,7 @@ export async function migrateWikis(
       for (const attId of attachmentIds) {
         try {
           await withRetry(() => targetBacklog.postWikiAttachment(wikiId, attId));
-        } catch (e) {
+        } catch (_e) {
           console.warn(`[Wiki] 添付ファイル紐付け失敗: Wiki '${wikiName}', AttID: ${attId}`);
         }
       }

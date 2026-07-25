@@ -1,10 +1,10 @@
 import "isomorphic-form-data";
 import "isomorphic-fetch";
+import { readFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import * as backlogjs from "backlog-js";
 import { config } from "dotenv";
-import { readFile } from "fs/promises";
-import { dirname, resolve } from "path";
-import { fileURLToPath } from "url";
 import { syncAttributes } from "./attribute-sync.mts";
 import { migrateIssues } from "./issue-migrator.mts";
 import { matchUsers } from "./user-matcher.mts";
@@ -43,7 +43,8 @@ function pLimit(concurrency: number) {
   const next = () => {
     activeCount--;
     if (queue.length > 0) {
-      queue.shift()!();
+      const task = queue.shift();
+      if (task) task();
     }
   };
 
@@ -81,12 +82,13 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
     }
     try {
       return await fn();
-    } catch (e: any) {
+    } catch (err: unknown) {
+      const e = err as { response?: { status?: number }; status?: number; _status?: number; message?: string };
       const status = e.response?.status || e.status || e._status || 0;
-      const isRateLimit = status === 429 || (e.message && e.message.includes("429"));
+      const isRateLimit = status === 429 || e.message?.includes("429");
       if (isRateLimit) {
         retries++;
-        if (retries > 5) throw e;
+        if (retries > 5) throw err;
         const waitMs = 60000;
         const newResetTime = Date.now() + waitMs;
         if (newResetTime > rateLimitResetTime) {
@@ -95,7 +97,7 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
         }
         await sleepAsync(rateLimitResetTime - Date.now() + 1000);
       } else {
-        throw e;
+        throw err;
       }
     }
   }
@@ -115,11 +117,11 @@ async function runMigration() {
   const myself = await withRetry(() => targetBacklog.getMyself());
   console.log(`移行先API実行ユーザー: ${myself.name} (ID: ${myself.id})`);
 
-  let targetProject: any = null;
+  let targetProject: { id: number; name: string; projectKey: string } | null = null;
   try {
-    targetProject = await withRetry(() => targetBacklog.getProject(targetProjectKey!));
+    targetProject = (await withRetry(() => targetBacklog.getProject(targetProjectKey))) as { id: number; name: string; projectKey: string };
     console.log(`移行先プロジェクト確認: ${targetProject.name} (キー: ${targetProject.projectKey}, ID: ${targetProject.id})`);
-  } catch (e: any) {
+  } catch (_e) {
     console.error(`[エラー] 移行先プロジェクト '${targetProjectKey}' が存在しないか、実行ユーザーが参加していません。`);
     process.exit(1);
   }
@@ -128,7 +130,9 @@ async function runMigration() {
   const sourceHost = process.env.BACKLOG_HOST;
   const sourceProjectKey = process.env.BACKLOG_PROJECT_KEY;
   if (sourceHost && sourceProjectKey && sourceHost === targetHost && sourceProjectKey === targetProjectKey) {
-    console.error(`[エラー] 移行元と移行先が同一プロジェクト (${targetHost} / ${targetProjectKey}) です。同一プロジェクトへの移行はできません。`);
+    console.error(
+      `[エラー] 移行元と移行先が同一プロジェクト (${targetHost} / ${targetProjectKey}) です。同一プロジェクトへの移行はできません。`,
+    );
     process.exit(1);
   }
 
@@ -138,27 +142,27 @@ async function runMigration() {
   if (existingIssuesCount > 0) {
     console.warn(`\n[注意] 移行先プロジェクト '${targetProjectKey}' に既に ${existingIssuesCount} 件の課題が存在します。`);
     if (!allowExistingIssues) {
-      console.error(`[中断] 既存課題が存在するため移行を中止します。`);
-      console.error(`課題キー番号を無視して登録を継続する場合は、.env に ALLOW_EXISTING_ISSUES=true を設定して再実行してください。\n`);
+      console.error("[中断] 既存課題が存在するため移行を中止します。");
+      console.error("課題キー番号を無視して登録を継続する場合は、.env に ALLOW_EXISTING_ISSUES=true を設定して再実行してください。\n");
       process.exit(1);
     } else {
-      console.log(`ALLOW_EXISTING_ISSUES=true が指定されているため、番号を気にせず登録を継続します。\n`);
+      console.log("ALLOW_EXISTING_ISSUES=true が指定されているため、番号を気にせず登録を継続します。\n");
     }
   }
 
   // 3. バックアップデータの読み込み
-  let sourceUsers: any[] = [];
-  let sourceIssueTypes: any[] = [];
-  let sourceCategories: any[] = [];
-  let sourceVersions: any[] = [];
+  let sourceUsers = [];
+  let sourceIssueTypes = [];
+  let sourceCategories = [];
+  let sourceVersions = [];
 
   try {
     sourceUsers = JSON.parse(await readFile(resolve(distConfigs, "users.json"), "utf-8"));
     sourceIssueTypes = JSON.parse(await readFile(resolve(distConfigs, "issueTypes.json"), "utf-8"));
     sourceCategories = JSON.parse(await readFile(resolve(distConfigs, "categories.json"), "utf-8"));
     sourceVersions = JSON.parse(await readFile(resolve(distConfigs, "versions.json"), "utf-8"));
-  } catch (e) {
-    console.error("[エラー] バックアップデータ（configs/）の読み込みに失敗しました。先に 'npm run backup' を実行してください。", e);
+  } catch (err) {
+    console.error("[エラー] バックアップデータ（configs/）の読み込みに失敗しました。先に 'npm run backup' を実行してください。", err);
     process.exit(1);
   }
 

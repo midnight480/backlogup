@@ -1,6 +1,58 @@
+import { readdir, readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import type * as backlogjs from "backlog-js";
-import { readdir, readFile } from "fs/promises";
-import { resolve } from "path";
+
+interface SourceIssueAttachment {
+  id: number;
+  name: string;
+}
+
+interface SourceIssueCategory {
+  id: number;
+  name: string;
+}
+
+interface SourceIssueVersion {
+  id: number;
+  name: string;
+}
+
+interface SourceIssue {
+  id: number;
+  issueKey: string;
+  summary: string;
+  description?: string;
+  created?: string;
+  createdUser?: { id: number; name: string };
+  assignee?: { id: number; name: string };
+  issueType?: { id: number; name: string };
+  priority?: { id: number; name: string };
+  status?: { id: number; name: string };
+  resolution?: { id: number; name: string };
+  category?: SourceIssueCategory[];
+  versions?: SourceIssueVersion[];
+  milestone?: SourceIssueVersion[];
+  attachments?: SourceIssueAttachment[];
+  parentIssueId?: number;
+  startDate?: string;
+  dueDate?: string;
+  estimatedHours?: number;
+  actualHours?: number;
+}
+
+interface CommentChangeLog {
+  field: string;
+  newValue?: string;
+}
+
+interface SourceComment {
+  id: number;
+  content?: string;
+  created?: string;
+  createdUser?: { id: number; name: string };
+  notifications?: unknown[];
+  changeLog?: CommentChangeLog[];
+}
 
 export async function migrateIssues(
   targetBacklog: backlogjs.Backlog,
@@ -12,7 +64,7 @@ export async function migrateIssues(
   versionMap: Map<number, number>,
   defaultTargetUserId: number,
   withRetry: <T>(fn: () => Promise<T>) => Promise<T>,
-  limit: <T>(fn: () => Promise<T>) => Promise<T>,
+  _limit: <T>(fn: () => Promise<T>) => Promise<T>,
 ): Promise<void> {
   console.log("--- 課題 (Issues) 移行開始 ---");
 
@@ -20,22 +72,22 @@ export async function migrateIssues(
   try {
     const entries = await readdir(issuesDir, { withFileTypes: true });
     issueDirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
-  } catch (e) {
+  } catch (_e) {
     console.log("課題ディレクトリが見つからないため、課題の移行をスキップします。");
     return;
   }
 
   // 全課題データを読み込んで古い順（ID順）にソート
-  const issueItems: Array<{ id: number; dirPath: string; issue: any }> = [];
+  const issueItems: Array<{ id: number; dirPath: string; issue: SourceIssue }> = [];
 
   for (const dirName of issueDirs) {
     const dirPath = resolve(issuesDir, dirName);
     const issueJsonPath = resolve(dirPath, "issue.json");
     try {
       const issueJson = await readFile(issueJsonPath, "utf-8");
-      const issue = JSON.parse(issueJson);
+      const issue = JSON.parse(issueJson) as SourceIssue;
       issueItems.push({ id: issue.id, dirPath, issue });
-    } catch (e) {
+    } catch (_e) {
       // 読み込み失敗時はスキップ
     }
   }
@@ -59,18 +111,18 @@ export async function migrateIssues(
         const filePath = resolve(attachmentsDir, attFile);
         const fileBuffer = await readFile(filePath);
         // 元の添付ファイル情報を特定するための検索
-        const originalAtt = oldIssue.attachments?.find((a: any) => String(a.id) === attFile);
+        const originalAtt = oldIssue.attachments?.find((a) => String(a.id) === attFile);
         const filename = originalAtt ? originalAtt.name : attFile;
 
-        const uploaded = await withRetry(() =>
+        const uploaded = (await withRetry(() =>
           targetBacklog.postSpaceAttachment({
             filename,
             file: fileBuffer,
           }),
-        );
+        )) as { id: number };
         attachmentIds.push(uploaded.id);
       }
-    } catch (e) {
+    } catch (_e) {
       // 添付ファイルが無い場合は無視
     }
 
@@ -81,24 +133,18 @@ export async function migrateIssues(
     const formattedDescription = metaHeader + (oldIssue.description || "");
 
     // 3. ID変換とパラメータ作成
-    const mappedTypeId = typeMap.get(oldIssue.issueType?.id) || Array.from(typeMap.values())[0];
+    const mappedTypeId = (oldIssue.issueType?.id ? typeMap.get(oldIssue.issueType.id) : undefined) || Array.from(typeMap.values())[0];
     const mappedAssigneeId = oldIssue.assignee ? userMap.get(oldIssue.assignee.id) || defaultTargetUserId : undefined;
 
-    const mappedCategoryIds = oldIssue.category
-      ?.map((c: any) => categoryMap.get(c.id))
-      .filter((id: any): id is number => typeof id === "number");
+    const mappedCategoryIds = oldIssue.category?.map((c) => categoryMap.get(c.id)).filter((id): id is number => typeof id === "number");
 
-    const mappedVersionIds = oldIssue.versions
-      ?.map((v: any) => versionMap.get(v.id))
-      .filter((id: any): id is number => typeof id === "number");
+    const mappedVersionIds = oldIssue.versions?.map((v) => versionMap.get(v.id)).filter((id): id is number => typeof id === "number");
 
-    const mappedMilestoneIds = oldIssue.milestone
-      ?.map((m: any) => versionMap.get(m.id))
-      .filter((id: any): id is number => typeof id === "number");
+    const mappedMilestoneIds = oldIssue.milestone?.map((m) => versionMap.get(m.id)).filter((id): id is number => typeof id === "number");
 
     const parentIssueId = oldIssue.parentIssueId ? issueIdMap.get(oldIssue.parentIssueId) : undefined;
 
-    const postParams: any = {
+    const postParams: Record<string, unknown> = {
       projectId: targetProjectId,
       summary: oldIssue.summary,
       description: formattedDescription,
@@ -117,23 +163,24 @@ export async function migrateIssues(
       mailNotify: false,
     };
 
-    let newIssue: any = null;
+    let newIssue: { id: number; issueKey: string } | null = null;
     try {
-      newIssue = await withRetry(() => targetBacklog.postIssue(postParams));
+      newIssue = (await withRetry(() => targetBacklog.postIssue(postParams as never))) as { id: number; issueKey: string };
       issueIdMap.set(oldIssue.id, newIssue.id);
       console.log(`${issueLogPrefix} 新課題作成成功: ${newIssue.issueKey} (ID: ${newIssue.id})`);
-    } catch (e: any) {
-      console.error(`${issueLogPrefix} 新課題作成失敗:`, e?.message || e);
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error(`${issueLogPrefix} 新課題作成失敗:`, errMsg);
       continue;
     }
 
     // 4. コメントの移行
     const commentsPath = resolve(item.dirPath, "comments.json");
-    let comments: Array<any> = [];
+    let comments: SourceComment[] = [];
     try {
       const commentsJson = await readFile(commentsPath, "utf-8");
       comments = JSON.parse(commentsJson);
-    } catch (e) {
+    } catch (_e) {
       // コメント読み込みスキップ
     }
 
@@ -149,12 +196,9 @@ export async function migrateIssues(
 
       // コメント添付ファイル処理
       const commentAttIds: number[] = [];
-      if (comment.notifications && comment.notifications.length > 0) {
-        // 必要に応じて処理
-      }
 
       try {
-        const commentParams: any = {
+        const commentParams: Record<string, unknown> = {
           content: contentText,
           attachmentId: commentAttIds.length > 0 ? commentAttIds : undefined,
           mailNotify: false,
@@ -162,9 +206,8 @@ export async function migrateIssues(
 
         // 状態変更が含まれている場合
         if (comment.changeLog) {
-          const statusChange = comment.changeLog.find((cl: any) => cl.field === "status");
-          if (statusChange && statusChange.newValue) {
-            // ステータスIDの適用
+          const statusChange = comment.changeLog.find((cl) => cl.field === "status");
+          if (statusChange?.newValue) {
             const statusId = Number(statusChange.newValue);
             if ([1, 2, 3, 4].includes(statusId)) {
               commentParams.statusId = statusId;
@@ -172,9 +215,10 @@ export async function migrateIssues(
           }
         }
 
-        await withRetry(() => targetBacklog.postComment(newIssue.id, commentParams));
-      } catch (e: any) {
-        console.warn(`${issueLogPrefix} コメント投稿失敗 (ID: ${comment.id}):`, e?.message || e);
+        await withRetry(() => targetBacklog.postComment(newIssue.id, commentParams as never));
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        console.warn(`${issueLogPrefix} コメント投稿失敗 (ID: ${comment.id}):`, errMsg);
       }
     }
 
@@ -188,7 +232,7 @@ export async function migrateIssues(
             comment: "[移行補足] 最終ステータス同調",
           }),
         );
-      } catch (e) {
+      } catch (_e) {
         // ステータス調整の失敗は軽微としてスルー
       }
     }

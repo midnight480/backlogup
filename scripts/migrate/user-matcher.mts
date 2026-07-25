@@ -1,6 +1,6 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import type * as backlogjs from "backlog-js";
-import { readFile } from "fs/promises";
-import { resolve } from "path";
 
 export interface UserMatchResult {
   userMap: Map<number, number>; // sourceUserId -> targetUserId
@@ -22,8 +22,8 @@ export async function matchUsers(
     const mappingJsonPath = resolve(distConfigsDir, "..", "user-mapping.json");
     const content = await readFile(mappingJsonPath, "utf-8");
     manualMapping = JSON.parse(content);
-    console.log(`[ユーザー照合] 手動マッピングファイル 'user-mapping.json' を読み込みました。`);
-  } catch (e) {
+    console.log("[ユーザー照合] 手動マッピングファイル 'user-mapping.json' を読み込みました。");
+  } catch (_e) {
     // ファイルが存在しない場合は自動照合のみ進行
   }
 
@@ -68,24 +68,30 @@ export async function matchUsers(
 
     // B. メールアドレス一致（信頼度 1.0）
     if (srcEmail && targetByEmail.has(srcEmail)) {
-      const matched = targetByEmail.get(srcEmail)!;
-      userMap.set(su.id, matched.id);
-      console.log(`[ユーザー照合] ${su.name} (${su.mailAddress}) -> ${matched.name} (メールアドレス完全一致)`);
-      continue;
+      const matched = targetByEmail.get(srcEmail);
+      if (matched) {
+        userMap.set(su.id, matched.id);
+        console.log(`[ユーザー照合] ${su.name} (${su.mailAddress}) -> ${matched.name} (メールアドレス完全一致)`);
+        continue;
+      }
     }
 
     // C. 名前またはユーザーID一致（信頼度 0.85）
     if (srcName && targetByName.has(srcName)) {
-      const matched = targetByName.get(srcName)!;
-      userMap.set(su.id, matched.id);
-      console.log(`[ユーザー照合] ${su.name} -> ${matched.name} (名前一致)`);
-      continue;
+      const matched = targetByName.get(srcName);
+      if (matched) {
+        userMap.set(su.id, matched.id);
+        console.log(`[ユーザー照合] ${su.name} -> ${matched.name} (名前一致)`);
+        continue;
+      }
     }
     if (srcUserIdStr && targetByUserId.has(srcUserIdStr)) {
-      const matched = targetByUserId.get(srcUserIdStr)!;
-      userMap.set(su.id, matched.id);
-      console.log(`[ユーザー照合] ${su.name} (ID: ${su.userId}) -> ${matched.name} (ユーザーID一致)`);
-      continue;
+      const matched = targetByUserId.get(srcUserIdStr);
+      if (matched) {
+        userMap.set(su.id, matched.id);
+        console.log(`[ユーザー照合] ${su.name} (ID: ${su.userId}) -> ${matched.name} (ユーザーID一致)`);
+        continue;
+      }
     }
 
     // D. マッチしなかった場合：デフォルト（実行ユーザー）を割り当て
