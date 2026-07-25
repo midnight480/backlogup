@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "tsx scripts/launcher/index.mts",
     "backup": "run-s backup:issue backup:textsearch",
     "backup:issue": "tsx scripts/backlog/index.mts",
     "backup:textsearch": "tsx scripts/textsearch/index.mts",

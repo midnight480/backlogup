@@ -52,6 +52,36 @@ Migrate/import backed-up data (issues, wiki pages, attachments, settings) to ano
 
 ---
 
+## Easy Start (Almost One-Click, for Non-Engineers)
+
+For people who aren't comfortable with the command line, there's a **double-click to run** option. A Japanese-language menu appears, and you just pick a number to run backups, download shared files, or launch the viewer.
+
+| OS | File to double-click |
+|----|----------------------|
+| Windows | `start-windows.bat` |
+| macOS | `start-mac.command` |
+
+**How it works (both OSes)**
+
+1. Download this repository as a ZIP and extract it (or `git clone`).
+2. Double-click the file for your OS above.
+   - On first run it checks for Node.js and auto-installs the required packages (a few minutes).
+   - If Node.js is missing, follow the prompt to install the LTS version from the [official site](https://nodejs.org/en/download).
+3. On first run a `.env` config file is created automatically and opens in Notepad / TextEdit. Fill in these three values and save:
+
+   | Field | Value |
+   |-------|-------|
+   | `BACKLOG_HOST` | Backlog domain (e.g., `xxx.backlog.com`) |
+   | `BACKLOG_API_KEY` | API key (Backlog → Personal Settings → API) |
+   | `BACKLOG_PROJECT_KEY` | Project key |
+
+4. When the menu appears, type the number for what you want to do and press Enter.
+
+> 💡 On macOS, if you see "cannot be opened because it is from an unidentified developer," **right-click `start-mac.command` → Open** to run it.
+
+---
+
+The sections below are for users comfortable with the command line.
 ## How to Backup
 
 1. Copy `sample.env` to `.env`
