@@ -11,7 +11,6 @@ export interface BacklogUserItem {
   name: string;
   mailAddress?: string;
   userId?: string;
-  [key: string]: unknown;
 }
 
 export async function matchUsers(

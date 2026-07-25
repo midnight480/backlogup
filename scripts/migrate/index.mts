@@ -27,7 +27,7 @@ const targetHost = process.env.TARGET_BACKLOG_HOST;
 if (!targetHost) throw new Error("環境変数 'TARGET_BACKLOG_HOST' が設定されていません");
 const targetApiKey = process.env.TARGET_BACKLOG_API_KEY;
 if (!targetApiKey) throw new Error("環境変数 'TARGET_BACKLOG_API_KEY' が設定されていません");
-const targetProjectKey = process.env.TARGET_BACKLOG_PROJECT_KEY;
+const targetProjectKey = process.env.TARGET_BACKLOG_PROJECT_KEY!;
 if (!targetProjectKey) throw new Error("環境変数 'TARGET_BACKLOG_PROJECT_KEY' が設定されていません");
 
 const allowExistingIssues = process.env.ALLOW_EXISTING_ISSUES === "true";
