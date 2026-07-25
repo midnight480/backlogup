@@ -32,6 +32,32 @@ export function downloadWikiMarkdown(wiki: backlog.Entity.Wiki.Wiki, formattingR
   downloadText(markdown, filename, "text/markdown;charset=utf-8");
 }
 
+function extractHeadingsFromMarkdown(plainText: string): Array<{ level: number; text: string; slug: string }> {
+  const lines = plainText.split("\n");
+  const headings: Array<{ level: number; text: string; slug: string }> = [];
+  for (const line of lines) {
+    const match = line.match(/^(#{1,6})\s+(.+)$/);
+    if (match) {
+      const level = match[1].length;
+      const text = match[2].trim();
+      const slug = text.toLowerCase().replace(/[^\w\u3000-\u30ff\u3400-\u4dbf\u4e00-\u9fff]+/g, "-");
+      headings.push({ level, text, slug });
+    }
+  }
+  return headings;
+}
+
+function generateMarkdownToc(headings: Array<{ level: number; text: string; slug: string }>): string {
+  if (headings.length === 0) return "";
+  const minLevel = Math.min(...headings.map((h) => h.level));
+  const lines = ["## TABLE OF CONTENTS\n"];
+  for (const h of headings) {
+    const indent = "  ".repeat(Math.max(0, h.level - minLevel));
+    lines.push(`${indent}- [${h.text}](#${h.slug})`);
+  }
+  return `${lines.join("\n")}\n\n`;
+}
+
 export function buildDocumentMarkdown(doc: BacklogDocument, comments: BacklogDocumentComment[]): string {
   const tags = doc.tags?.map((tag) => tag.name).join(", ");
   const frontMatter = buildFrontMatter({
@@ -43,19 +69,38 @@ export function buildDocumentMarkdown(doc: BacklogDocument, comments: BacklogDoc
     tags,
   });
 
-  const sections = [`${frontMatter}${doc.plain ?? ""}`];
+  let body = doc.plain ?? "";
+
+  // Rewrite /file/:id attachment image links in markdown plain text
+  body = body.replace(/\/file\/(\d+)/g, `./attachments/$1`);
+
+  // Check if doc.json contains a TOC node
+  const jsonStr = doc.json ? (typeof doc.json === "string" ? doc.json : JSON.stringify(doc.json)) : "";
+  const hasToc = jsonStr.includes('"type":"toc"');
+
+  let tocBlock = "";
+  if (hasToc && !body.includes("TABLE OF CONTENTS") && !body.includes("目次")) {
+    const headings = extractHeadingsFromMarkdown(body);
+    tocBlock = generateMarkdownToc(headings);
+  }
+
+  const sections = [`${frontMatter}${tocBlock}${body}`];
 
   if (comments.length > 0) {
     sections.push("\n\n---\n\n## コメント\n");
     for (const comment of comments) {
       sections.push(`\n### ${comment.createdUser?.name ?? "Unknown"} (${dayjs(comment.created).format("YYYY/MM/DD HH:mm:ss")})\n\n`);
-      sections.push(comment.plain ?? "");
+      let commentBody = comment.plain ?? "";
+      commentBody = commentBody.replace(/\/file\/(\d+)/g, `./attachments/$1`);
+      sections.push(commentBody);
       if (comment.replies?.length) {
         for (const reply of comment.replies) {
           sections.push(
             `\n#### ${reply.createdUser?.name ?? "Unknown"} (${dayjs(reply.created).format("YYYY/MM/DD HH:mm:ss")})\n\n`,
           );
-          sections.push(reply.plain ?? "");
+          let replyBody = reply.plain ?? "";
+          replyBody = replyBody.replace(/\/file\/(\d+)/g, `./attachments/$1`);
+          sections.push(replyBody);
         }
       }
     }
