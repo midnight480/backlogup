@@ -124,6 +124,14 @@ async function runMigration() {
     process.exit(1);
   }
 
+  // 1.5. 事前検証（同一プロジェクトチェック）
+  const sourceHost = process.env.BACKLOG_HOST;
+  const sourceProjectKey = process.env.BACKLOG_PROJECT_KEY;
+  if (sourceHost && sourceProjectKey && sourceHost === targetHost && sourceProjectKey === targetProjectKey) {
+    console.error(`[エラー] 移行元と移行先が同一プロジェクト (${targetHost} / ${targetProjectKey}) です。同一プロジェクトへの移行はできません。`);
+    process.exit(1);
+  }
+
   // 2. 事前検証（Pre-flight Check 2: 既存課題チェック）
   const { count: existingIssuesCount } = await withRetry(() => targetBacklog.getIssuesCount({ projectId: [targetProject.id] }));
 
