@@ -39,15 +39,24 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <div className="font-body-md text-on-surface bg-background min-h-screen">
-      <nav className="bg-white dark:bg-slate-900 flex justify-between items-center w-full px-6 h-14 fixed top-0 z-50 border-b border-[#D0D7DE] dark:border-slate-800">
-        <div className="flex items-center gap-6">
-          <span className="text-xl font-black text-primary dark:text-blue-400 font-headline-md">backlogup</span>
-          <div className="hidden md:flex gap-4">
+    <div className="font-body-md text-slate-800 bg-slate-50 min-h-screen selection:bg-emerald-100 selection:text-emerald-900">
+      <nav className="bg-white/90 backdrop-blur-md flex justify-between items-center w-full px-6 h-14 fixed top-0 z-50 border-b border-slate-200/80 shadow-subtle">
+        <div className="flex items-center gap-8">
+          <NavLink to="/dashboard" className="flex items-center gap-2 group">
+            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-black text-lg shadow-sm group-hover:bg-emerald-700 transition-colors">
+              b
+            </div>
+            <span className="text-xl font-extrabold text-slate-900 tracking-tight font-headline-md">backlogup</span>
+          </NavLink>
+          <div className="hidden md:flex items-center gap-1">
             <NavLink
               to="/dashboard"
               className={({ isActive }) =>
-                `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? "text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400" : "text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800"}`
+                `font-body-md px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                  isActive
+                    ? "text-emerald-700 bg-emerald-50 shadow-xs font-bold"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+                }`
               }
             >
               {t("dashboard")}
@@ -55,7 +64,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <NavLink
               to="/issues"
               className={({ isActive }) =>
-                `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? "text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400" : "text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800"}`
+                `font-body-md px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                  isActive
+                    ? "text-emerald-700 bg-emerald-50 shadow-xs font-bold"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+                }`
               }
             >
               {t("issues")}
@@ -64,7 +77,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               <NavLink
                 to="/wikis/home"
                 className={({ isActive }) =>
-                  `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? "text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400" : "text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800"}`
+                  `font-body-md px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                    isActive
+                      ? "text-emerald-700 bg-emerald-50 shadow-xs font-bold"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+                  }`
                 }
               >
                 {t("wikis")}
@@ -74,7 +91,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               <NavLink
                 to="/documents/root"
                 className={({ isActive }) =>
-                  `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? "text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400" : "text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800"}`
+                  `font-body-md px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                    isActive
+                      ? "text-emerald-700 bg-emerald-50 shadow-xs font-bold"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+                  }`
                 }
               >
                 {t("documents")}
@@ -84,7 +105,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               <NavLink
                 to="/shared-files"
                 className={({ isActive }) =>
-                  `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? "text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400" : "text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800"}`
+                  `font-body-md px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                    isActive
+                      ? "text-emerald-700 bg-emerald-50 shadow-xs font-bold"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+                  }`
                 }
               >
                 {t("sharedFiles")}
@@ -93,25 +118,29 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <NavLink
               to="/user-mapping"
               className={({ isActive }) =>
-                `font-body-md px-3 py-1 rounded-lg transition-colors ${isActive ? "text-primary font-bold border-b-2 border-primary rounded-none dark:text-blue-400 dark:border-blue-400" : "text-[#57606A] hover:bg-[#F6F8FA] dark:text-slate-300 dark:hover:bg-slate-800"}`
+                `font-body-md px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                  isActive
+                    ? "text-emerald-700 bg-emerald-50 shadow-xs font-bold"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+                }`
               }
             >
               {t("userMapping" as any)}
             </NavLink>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <div className="relative">
-            <span className="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
             <input
-              className="pl-9 pr-4 py-1.5 bg-surface-container-low border border-outline-variant rounded-lg text-body-sm w-64 focus:ring-1 focus:ring-primary outline-none"
+              className="pl-9 pr-4 py-1.5 bg-slate-100/80 hover:bg-slate-100 focus:bg-white border border-slate-200 focus:border-emerald-500 rounded-lg text-xs w-56 transition-all focus:ring-2 focus:ring-emerald-500/20 outline-none text-slate-800 placeholder-slate-400"
               placeholder={t("searchPlaceholder")}
               type="text"
             />
           </div>
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center justify-center p-2 text-outline hover:bg-surface-container-low dark:hover:bg-slate-800 rounded-full transition-colors"
+            className="flex items-center justify-center p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors border border-transparent hover:border-slate-200"
             title={t("settings")}
           >
             <span className="material-symbols-outlined text-[20px]">settings</span>
@@ -119,16 +148,17 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </nav>
 
-      <main className="pt-14 pb-12 min-h-screen">
-        <div className="px-gutter py-md max-w-[1400px] mx-auto">{children}</div>
+      <main className="pt-14 pb-16 min-h-screen">
+        <div className="px-6 py-6 max-w-[1440px] mx-auto">{children}</div>
       </main>
 
-      <footer className="fixed bottom-0 right-0 left-0 py-2 px-6 flex justify-between items-center z-40 bg-[#DDF4FF] dark:bg-blue-900/20 border-t border-primary">
+      <footer className="fixed bottom-0 right-0 left-0 py-2.5 px-6 flex justify-between items-center z-40 bg-emerald-50/90 backdrop-blur-md border-t border-emerald-200/80">
         <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4">
-          <span className="font-['Inter'] text-xs font-semibold uppercase tracking-wider text-primary dark:text-blue-300">
+          <span className="font-['Inter'] text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
             {t("notice")}
           </span>
-          <span className="font-['Inter'] text-xs text-primary/80 dark:text-blue-300/80">
+          <span className="font-['Inter'] text-xs text-emerald-900/90 font-medium">
             {t("trackingNotice" as keyof typeof dict.en)}
           </span>
         </div>

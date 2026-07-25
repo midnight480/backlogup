@@ -61,27 +61,27 @@ export const Dashboard: React.FC = () => {
   const projectKey = import.meta.env.BACKLOG_PROJECT_KEY || project?.projectKey || "PROJ";
 
   return (
-    <div className="max-w-6xl mx-auto py-lg">
-      <div className="mb-lg bg-[#DDF4FF] dark:bg-primary/20 border border-primary rounded-lg p-md flex items-center gap-md">
-        <span className="material-symbols-outlined text-primary dark:text-blue-300">info</span>
-        <p className="font-body-md text-primary dark:text-blue-300 font-medium">{t("notice")}</p>
+    <div className="max-w-6xl mx-auto py-4 space-y-6">
+      <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-xl p-4 flex items-center gap-3 shadow-xs">
+        <span className="material-symbols-outlined text-emerald-700 text-[20px]">info</span>
+        <p className="text-xs text-emerald-900 font-medium leading-relaxed">{t("notice")}</p>
       </div>
 
-      <div className="flex justify-between items-end mb-xl">
+      <div className="flex justify-between items-end pb-2 border-b border-slate-200">
         <div>
-          <h1 className="font-headline-lg text-on-surface">{t("dashboard")}</h1>
-          <p className="text-on-surface-variant font-body-md">Overview of your local project preservation status.</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t("dashboard")}</h1>
+          <p className="text-slate-500 text-xs mt-1">Overview of your local project preservation status.</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-lg mb-lg">
+      <div className="grid grid-cols-12 gap-6">
         {/* Licence Info Card */}
-        <div className="col-span-12 md:col-span-6 bg-white border border-[#D0D7DE] rounded-xl p-xl flex flex-col justify-between">
+        <div className="col-span-12 md:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm flex flex-col justify-between hover:shadow-card transition-shadow">
           <div>
-            <span className="text-label-md bg-[#EFF1F3] text-on-surface-variant px-sm py-xs rounded font-label-md uppercase">
+            <span className="text-[11px] font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md uppercase tracking-wider">
               {t("licenceInfo")}
             </span>
-            <h3 className="font-headline-md mt-sm text-on-surface">
+            <h3 className="text-xl font-bold mt-3 text-slate-900">
               {licence
                 ? licence.licenceTypeId === 51
                   ? t("premium")
@@ -90,28 +90,28 @@ export const Dashboard: React.FC = () => {
                     : `${t("planType")} ${licence.licenceTypeId || t("unknownPlan")}`
                 : t("unknownPlan")}
             </h3>
-            <div className="mt-lg space-y-md">
-              <div className="flex justify-between items-center py-2 border-b border-surface-container">
-                <span className="text-body-sm text-on-surface-variant">{t("userLimit")}</span>
-                <span className="font-bold">{licence ? (licence.userLimit === 0 ? t("unlimited") : licence.userLimit) : "-"}</span>
+            <div className="mt-6 space-y-3">
+              <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                <span className="text-xs text-slate-500">{t("userLimit")}</span>
+                <span className="text-xs font-semibold text-slate-800">{licence ? (licence.userLimit === 0 ? t("unlimited") : licence.userLimit) : "-"}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-surface-container">
-                <span className="text-body-sm text-on-surface-variant">{t("storageCapacity")}</span>
-                <span className="font-bold">
+              <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                <span className="text-xs text-slate-500">{t("storageCapacity")}</span>
+                <span className="text-xs font-semibold text-slate-800">
                   {licence?.storageLimit ? (licence.storageLimit / (1024 * 1024 * 1024)).toFixed(2) + " GB" : "-"}
                 </span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-surface-container">
-                <span className="text-body-sm text-on-surface-variant">{t("spaceUsage")}</span>
-                <span className="font-bold">
+              <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                <span className="text-xs text-slate-500">{t("spaceUsage")}</span>
+                <span className="text-xs font-semibold text-slate-800">
                   {spaceUsage && spaceUsage.available && spaceUsage.data?.capacity
                     ? `${((spaceUsage.data.issue + spaceUsage.data.wiki + spaceUsage.data.file + spaceUsage.data.subversion + spaceUsage.data.git + spaceUsage.data.gitLFS) / (1024 * 1024 * 1024)).toFixed(2)} GB / ${(spaceUsage.data.capacity / (1024 * 1024 * 1024)).toFixed(2)} GB`
                     : t("spaceUsageNotAvailable")}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2">
-                <span className="text-body-sm text-on-surface-variant">{t("renewalDate")}</span>
-                <span className="font-bold text-primary">
+                <span className="text-xs text-slate-500">{t("renewalDate")}</span>
+                <span className="text-xs font-semibold text-emerald-700">
                   {licence?.limitDate ? new Date(licence.limitDate).toLocaleDateString() : "-"}
                 </span>
               </div>
@@ -120,65 +120,65 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Project Info Card */}
-        <div className="col-span-12 md:col-span-6 bg-white border border-[#D0D7DE] rounded-xl p-xl flex flex-col justify-between">
+        <div className="col-span-12 md:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm flex flex-col justify-between hover:shadow-card transition-shadow">
           <div>
-            <span className="text-label-md bg-[#EFF1F3] text-on-surface-variant px-sm py-xs rounded font-label-md uppercase">
+            <span className="text-[11px] font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md uppercase tracking-wider">
               {t("projectDetails")}
             </span>
-            <h3 className="font-headline-md mt-sm text-on-surface">
-              {project?.name || "Unknown"} ({project?.projectKey || "-"})
+            <h3 className="text-xl font-bold mt-3 text-slate-900">
+              {project?.name || "Unknown"} <span className="text-slate-400 font-normal">({project?.projectKey || "-"})</span>
             </h3>
-            <div className="mt-lg space-y-md">
-              <div className="flex justify-between items-center py-2 border-b border-surface-container">
-                <span className="text-body-sm text-on-surface-variant">Text Formatting</span>
-                <span className="font-bold">{project?.textFormattingRule === "markdown" ? "Markdown" : "Backlog"}</span>
+            <div className="mt-6 space-y-3">
+              <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                <span className="text-xs text-slate-500">Text Formatting</span>
+                <span className="text-xs font-semibold text-slate-800">{project?.textFormattingRule === "markdown" ? "Markdown" : "Backlog"}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-surface-container">
-                <span className="text-body-sm text-on-surface-variant">Wiki Enabled</span>
-                <span className="font-bold">{project?.useWiki ? "Yes" : "No"}</span>
+              <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                <span className="text-xs text-slate-500">Wiki Enabled</span>
+                <span className="text-xs font-semibold text-slate-800">{project?.useWiki ? "Yes" : "No"}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-surface-container">
-                <span className="text-body-sm text-on-surface-variant">Shared Files Enabled</span>
-                <span className="font-bold">{project?.useFileSharing ? "Yes" : "No"}</span>
+              <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                <span className="text-xs text-slate-500">Shared Files Enabled</span>
+                <span className="text-xs font-semibold text-slate-800">{project?.useFileSharing ? "Yes" : "No"}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-surface-container">
-                <span className="text-body-sm text-on-surface-variant">Subversion Enabled</span>
-                <span className="font-bold">{project?.useSubversion ? "Yes" : "No"}</span>
+              <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                <span className="text-xs text-slate-500">Subversion Enabled</span>
+                <span className="text-xs font-semibold text-slate-800">{project?.useSubversion ? "Yes" : "No"}</span>
               </div>
               <div className="flex justify-between items-center py-2">
-                <span className="text-body-sm text-on-surface-variant">Git Enabled</span>
-                <span className="font-bold">{project?.useGit ? "Yes" : "No"}</span>
+                <span className="text-xs text-slate-500">Git Enabled</span>
+                <span className="text-xs font-semibold text-slate-800">{project?.useGit ? "Yes" : "No"}</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="col-span-12 bg-white border border-[#D0D7DE] rounded-xl overflow-hidden mb-lg">
-        <div className="px-xl py-lg border-b border-[#D0D7DE] bg-[#F6F8FA] flex items-center gap-md">
-          <span className="material-symbols-outlined text-primary">hub</span>
-          <h3 className="font-headline-sm">リポジトリ・外部連携ガイド</h3>
+      <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2.5">
+          <span className="material-symbols-outlined text-emerald-600 text-[20px]">hub</span>
+          <h3 className="text-base font-bold text-slate-800">リポジトリ・外部連携ガイド</h3>
         </div>
-        <div className="p-xl flex flex-col gap-xl">
+        <div className="p-6 space-y-6">
           {project?.useSubversion && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-xl items-start">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
               {project?.useSubversion && (
-                <div className="space-y-md">
-                  <div className="flex items-center gap-sm">
-                    <span className="text-on-surface font-bold">Subversion (SVN)</span>
-                    <span className="bg-secondary/10 text-[#006e2b] text-[10px] font-black px-1.5 rounded border border-[#006e2b]/20 uppercase">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-900 font-bold text-sm">Subversion (SVN)</span>
+                    <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200 uppercase">
                       Enabled
                     </span>
                   </div>
-                  <p className="text-body-sm text-on-surface-variant">
-                    Checkout command using <code>.env</code> variables:
+                  <p className="text-xs text-slate-500">
+                    Checkout command using <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700">.env</code> variables:
                   </p>
-                  <div className="bg-surface-container-low p-md rounded-lg border border-outline-variant group relative">
-                    <code className="text-code-sm text-on-surface block break-all">
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 group relative">
+                    <code className="text-xs text-slate-800 block break-all font-mono">
                       svn co https://{backlogHost}/svn/{projectKey}
                     </code>
                     <button
-                      className="absolute top-2 right-2 text-outline hover:text-primary transition-colors"
+                      className="absolute top-2.5 right-2.5 text-slate-400 hover:text-emerald-600 transition-colors"
                       onClick={() => copyToClipboard(`svn co https://${backlogHost}/svn/${projectKey}`, "svn-cmd")}
                     >
                       <span className="material-symbols-outlined text-[18px]">{copiedId === "svn-cmd" ? "check" : "content_copy"}</span>
@@ -190,17 +190,17 @@ export const Dashboard: React.FC = () => {
           )}
 
           {project?.useGit && (
-            <div className={`space-y-md ${project?.useSubversion ? "border-t border-[#D0D7DE] pt-xl" : ""}`}>
-              <div className="flex items-center gap-sm">
-                <span className="text-on-surface font-bold">{t("gitRepositories")}</span>
-                <span className="bg-secondary/10 text-[#006e2b] text-[10px] font-black px-1.5 rounded border border-[#006e2b]/20 uppercase">
+            <div className={`space-y-4 ${project?.useSubversion ? "border-t border-slate-100 pt-6" : ""}`}>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-900 font-bold text-sm">{t("gitRepositories")}</span>
+                <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200 uppercase">
                   Enabled
                 </span>
-                <span className="text-label-sm text-on-surface-variant ml-sm">{gitRepos.length} repositories</span>
+                <span className="text-xs text-slate-400 ml-1">{gitRepos.length} repositories</span>
               </div>
-              <div className={gitRepos.length > 0 ? "grid grid-cols-1 md:grid-cols-2 gap-md" : "space-y-md"}>
+              <div className={gitRepos.length > 0 ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "space-y-4"}>
                 {gitRepos.length === 0 ? (
-                  <p className="text-body-sm text-outline">リポジトリはありません。</p>
+                  <p className="text-xs text-slate-400">リポジトリはありません。</p>
                 ) : (
                   gitRepos.map((repo) => {
                     const type = activeGitType[repo.id] || "http";
@@ -210,29 +210,29 @@ export const Dashboard: React.FC = () => {
                       ? `git clone ${url} && cd ${repo.name} && git branch -r | grep -v '\\->' | while read remote; do git branch --track "\${remote#origin/}" "$remote" 2>/dev/null || true; done`
                       : `git clone ${url}`;
                     return (
-                      <div key={repo.id} className="p-md bg-surface-bright border border-surface-container-high rounded-lg">
-                        <div className="flex justify-between items-center mb-sm">
-                          <div className="flex items-center gap-3 pr-sm overflow-hidden">
-                            <span className="font-medium text-body-md truncate" title={repo.name}>
+                      <div key={repo.id} className="p-4 bg-slate-50/60 border border-slate-200/80 rounded-xl space-y-2">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-3 pr-2 overflow-hidden">
+                            <span className="font-semibold text-xs text-slate-800 truncate" title={repo.name}>
                               {repo.name}
                             </span>
                             <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
-                              <input type="checkbox" className="rounded border-outline-variant text-primary focus:ring-primary" checked={isCloneAll} onChange={() => toggleCloneAll(repo.id)} />
-                              <span className="text-[11px] text-on-surface-variant font-medium">{t("cloneAllBranches")}</span>
+                              <input type="checkbox" className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5" checked={isCloneAll} onChange={() => toggleCloneAll(repo.id)} />
+                              <span className="text-[11px] text-slate-500 font-medium">{t("cloneAllBranches")}</span>
                             </label>
                           </div>
-                          <div className="flex bg-surface-container rounded p-0.5 shrink-0">
+                          <div className="flex bg-slate-200/60 rounded-md p-0.5 shrink-0">
                             <button
-                              className={`px-2 py-0.5 text-[11px] font-bold rounded transition-all ${
-                                type === "http" ? "bg-white shadow-sm text-primary" : "text-outline hover:text-on-surface"
+                              className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${
+                                type === "http" ? "bg-white shadow-xs text-emerald-700" : "text-slate-500 hover:text-slate-800"
                               }`}
                               onClick={() => toggleGitType(repo.id, "http")}
                             >
                               HTTP
                             </button>
                             <button
-                              className={`px-2 py-0.5 text-[11px] font-bold rounded transition-all ${
-                                type === "ssh" ? "bg-white shadow-sm text-primary" : "text-outline hover:text-on-surface"
+                              className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${
+                                type === "ssh" ? "bg-white shadow-xs text-emerald-700" : "text-slate-500 hover:text-slate-800"
                               }`}
                               onClick={() => toggleGitType(repo.id, "ssh")}
                             >
@@ -242,12 +242,12 @@ export const Dashboard: React.FC = () => {
                         </div>
                         <div className="relative group">
                           <input
-                            className="w-full bg-white border border-outline-variant rounded px-sm py-1.5 text-code-sm text-on-surface-variant focus:ring-0 pr-8"
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-[11px] font-mono text-slate-700 focus:ring-0 pr-8 shadow-xs"
                             readOnly
                             value={command}
                           />
                           <button
-                            className="absolute right-2 top-1.5 text-outline hover:text-primary"
+                            className="absolute right-2 top-1.5 text-slate-400 hover:text-emerald-600"
                             onClick={() => copyToClipboard(command, `git-${repo.id}`)}
                           >
                             <span className="material-symbols-outlined text-[16px]">
@@ -267,3 +267,4 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+

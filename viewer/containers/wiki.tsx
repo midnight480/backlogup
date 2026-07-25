@@ -47,23 +47,27 @@ const WikiTreeNodeView: React.FC<{ node: WikiTreeNode; currentWikiId?: string; l
 
   if (node.wiki && hasChildren) {
     return (
-      <div className={`mt-xs ${level > 0 ? "ml-xl border-l border-outline-variant" : ""}`}>
+      <div className={`mt-xs ${level > 0 ? "ml-xl border-l border-slate-200" : ""}`}>
         <div
-          className={`flex items-center gap-sm py-2 rounded-lg text-body-sm cursor-pointer ${paddingLeftClass} ${isCurrent ? "text-primary bg-primary/5 font-bold dark:bg-primary/20 dark:text-blue-300" : "text-on-surface hover:bg-surface-container-low dark:text-slate-200 dark:hover:bg-slate-800"}`}
+          className={`flex items-center gap-sm py-2 rounded-lg text-xs cursor-pointer ${paddingLeftClass} ${
+            isCurrent
+              ? "text-emerald-700 bg-emerald-50 font-bold shadow-xs"
+              : "text-slate-700 hover:bg-slate-100"
+          }`}
           onClick={() => setOpen(!open)}
         >
           <span className="material-symbols-outlined text-sm">{open ? "folder_open" : "folder"}</span>
           <span className="flex-1 truncate">{node.label}</span>
           <Link
             to={`/wikis/${node.wiki.id}`}
-            className="material-symbols-outlined text-sm hover:text-primary px-1"
+            className="material-symbols-outlined text-sm hover:text-emerald-600 px-1"
             onClick={(e) => e.stopPropagation()}
           >
             description
           </Link>
         </div>
         {open && (
-          <div className="ml-xl mt-xs border-l border-outline-variant">
+          <div className="ml-xl mt-xs border-l border-slate-200">
             {childNodes.map((child) => (
               <WikiTreeNodeView key={child.label} node={child} currentWikiId={currentWikiId} level={level + 1} />
             ))}
@@ -75,10 +79,14 @@ const WikiTreeNodeView: React.FC<{ node: WikiTreeNode; currentWikiId?: string; l
 
   if (node.wiki) {
     return (
-      <div className={`mt-xs ${level > 0 ? "ml-xl border-l border-outline-variant" : ""}`}>
+      <div className={`mt-xs ${level > 0 ? "ml-xl border-l border-slate-200" : ""}`}>
         <Link
           to={`/wikis/${node.wiki.id}`}
-          className={`flex items-center gap-sm py-1.5 cursor-pointer text-body-sm rounded-lg ${paddingLeftClass} ${isCurrent ? "text-primary bg-primary/5 font-bold dark:bg-primary/20 dark:text-blue-300" : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800"}`}
+          className={`flex items-center gap-sm py-1.5 cursor-pointer text-xs rounded-lg ${paddingLeftClass} ${
+            isCurrent
+              ? "text-emerald-700 bg-emerald-50 font-bold shadow-xs"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+          }`}
         >
           <span className="material-symbols-outlined text-sm">description</span>
           <span className="truncate">{node.label}</span>

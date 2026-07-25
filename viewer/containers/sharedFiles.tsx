@@ -53,10 +53,10 @@ export const SharedFiles: React.FC = observer(() => {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="bg-[#DDF4FF] dark:bg-primary/20 border border-primary rounded-xl px-4 py-3 shadow-sm">
+      <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-xl px-4 py-3 shadow-xs">
         <div className="flex items-start gap-3">
-          <span className="material-symbols-outlined text-primary text-[20px]">info</span>
-          <p className="text-body-sm text-primary dark:text-blue-300 leading-tight">
+          <span className="material-symbols-outlined text-emerald-700 text-[20px]">info</span>
+          <p className="text-xs text-emerald-900 leading-relaxed font-medium">
             {sharedFileStore.devAvailable ? t("sharedFilesDownloadHint") : t("downloadDevOnly")}
           </p>
         </div>
