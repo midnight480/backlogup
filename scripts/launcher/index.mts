@@ -106,7 +106,46 @@ async function ensureEnv(): Promise<boolean> {
       await ask("入力して保存したら、Enter キーを押してください... ");
     }
     if (envLooksUnconfigured()) {
-      print("⚠️  まだ初期値が残っているようです。あとで「5) 設定ファイルを開く」から編集できます。");
+      print("⚠️  まだ初期値が残っているようです。あとで「6) 設定ファイルを開く」から編集できます。");
+      return false;
+    }
+  }
+  return true;
+}
+
+/** .env の移行先設定（TARGET_BACKLOG_*）がまだ未設定かどうか判定 */
+function targetEnvLooksUnconfigured(): boolean {
+  if (!existsSync(envPath)) return true;
+  let body: string;
+  try {
+    body = readFileSync(envPath, "utf8");
+  } catch {
+    return true;
+  }
+  const placeholders = ["target.backlog.com", "YYYYYYYYYYYYYYYYYYYYYYYYYYY", "TARGET_PROJ"];
+  return placeholders.some((p) => body.includes(p));
+}
+
+/**
+ * 移行先環境変数の準備を確認する。
+ * @returns 設定が完了していれば true
+ */
+async function ensureTargetEnv(): Promise<boolean> {
+  if (targetEnvLooksUnconfigured()) {
+    print("");
+    print("⚠️  移行先設定（TARGET_BACKLOG_*）が未設定または初期状態（サンプルのまま）です。");
+    print("   .env ファイルに移行先 Backlog の情報を入力してください:");
+    print("     - TARGET_BACKLOG_HOST        … 移行先の Backlog ドメイン（例: target.backlog.com）");
+    print("     - TARGET_BACKLOG_API_KEY     … 移行先の APIキー");
+    print("     - TARGET_BACKLOG_PROJECT_KEY … 移行先の プロジェクトキー");
+    print("");
+    const answer = await ask("今すぐ .env を開いて編集しますか？ (y/N): ");
+    if (answer.toLowerCase() === "y") {
+      openFile(envPath);
+      await ask("入力して保存したら、Enter キーを押してください... ");
+    }
+    if (targetEnvLooksUnconfigured()) {
+      print("⚠️  移行先の設定が更新されていないようです。「6) 設定ファイルを開く」からも編集できます。");
       return false;
     }
   }
@@ -122,7 +161,8 @@ function showMenu(): void {
   print("   2) 共有ファイルをすべてダウンロードする");
   print("   3) ビューア（閲覧画面）を起動する");
   print("   4) データを全消去してからバックアップし直す");
-  print("   5) 設定ファイル(.env)を開いて編集する");
+  print("   5) バックアップデータを別のBacklogへ移行(マイグレーション)する");
+  print("   6) 設定ファイル(.env)を開いて編集する");
   print("   0) 終了する");
   print("==================================================");
 }
@@ -166,6 +206,23 @@ async function handleChoice(choice: string): Promise<boolean> {
       return true;
     }
     case "5": {
+      print("");
+      print("▶ バックアップデータを別の Backlog プロジェクトへ移行します。");
+      const ready = await ensureTargetEnv();
+      if (!ready) return true;
+
+      const confirm = await ask("⚠️ バックアップデータを移行先プロジェクトへ投入します。実行しますか？ (y/N): ");
+      if (confirm.toLowerCase() !== "y") {
+        print("中止しました。");
+        return true;
+      }
+
+      print("\n▶ 移行処理を開始します...");
+      const code = runNpm(["run", "migrate"]);
+      print(code === 0 ? "✅ 移行が完了しました。" : "❌ 移行中にエラーが発生しました。");
+      return true;
+    }
+    case "6": {
       if (!existsSync(envPath)) {
         await ensureEnv();
       } else {
@@ -179,7 +236,7 @@ async function handleChoice(choice: string): Promise<boolean> {
     case "exit":
       return false;
     default:
-      print("⚠️ 0〜5 の番号を入力してください。");
+      print("⚠️ 0〜6 の番号を入力してください。");
       return true;
   }
 }
