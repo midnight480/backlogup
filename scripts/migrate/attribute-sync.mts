@@ -47,7 +47,7 @@ export async function syncAttributes(
   // 1. 種別 (Issue Types) の同調
   // ========================================
   console.log("--- 種別 (Issue Types) 同調開始 ---");
-  const targetIssueTypes = (await withRetry(() => targetBacklog.getIssueTypes(targetProjectId))) as TargetAttribute[];
+  const targetIssueTypes = (await withRetry(() => targetBacklog.getIssueTypes(targetProjectId))) as unknown as TargetAttribute[];
   const targetTypeByName = new Map<string, TargetAttribute>(targetIssueTypes.map((t) => [t.name.trim().toLowerCase(), t]));
 
   for (const st of sourceIssueTypes) {
@@ -58,12 +58,13 @@ export async function syncAttributes(
       console.log(`[種別] 既存利用: '${st.name}' (ID: ${st.id} -> ${matched.id})`);
     } else {
       try {
+        const colorVal = (st.color || "#e30000") as backlogjs.Option.Issue.IssueTypeColor;
         const created = (await withRetry(() =>
           targetBacklog.postIssueType(targetProjectId, {
             name: st.name,
-            color: st.color || "#e30000",
+            color: colorVal,
           }),
-        )) as TargetAttribute;
+        )) as unknown as TargetAttribute;
         typeMap.set(st.id, created.id);
         console.log(`[種別] 新規作成: '${st.name}' (新ID: ${created.id})`);
       } catch (err) {
@@ -80,7 +81,7 @@ export async function syncAttributes(
   // 2. カテゴリー (Categories) の同調
   // ========================================
   console.log("--- カテゴリー (Categories) 同調開始 ---");
-  const targetCategories = (await withRetry(() => targetBacklog.getCategories(targetProjectId))) as TargetAttribute[];
+  const targetCategories = (await withRetry(() => targetBacklog.getCategories(targetProjectId))) as unknown as TargetAttribute[];
   const targetCatByName = new Map<string, TargetAttribute>(targetCategories.map((c) => [c.name.trim().toLowerCase(), c]));
 
   for (const sc of sourceCategories) {
@@ -91,7 +92,9 @@ export async function syncAttributes(
       console.log(`[カテゴリー] 既存利用: '${sc.name}' (ID: ${sc.id} -> ${matched.id})`);
     } else {
       try {
-        const created = (await withRetry(() => targetBacklog.postCategory(targetProjectId, { name: sc.name }))) as TargetAttribute;
+        const created = (await withRetry(() =>
+          targetBacklog.postCategories(targetProjectId, { name: sc.name }),
+        )) as unknown as TargetAttribute;
         categoryMap.set(sc.id, created.id);
         console.log(`[カテゴリー] 新規作成: '${sc.name}' (新ID: ${created.id})`);
       } catch (err) {
@@ -105,7 +108,7 @@ export async function syncAttributes(
   // 3. バージョン・マイルストーン (Versions) の同調
   // ========================================
   console.log("--- バージョン・マイルストーン 同調開始 ---");
-  const targetVersions = (await withRetry(() => targetBacklog.getVersions(targetProjectId))) as TargetAttribute[];
+  const targetVersions = (await withRetry(() => targetBacklog.getVersions(targetProjectId))) as unknown as TargetAttribute[];
   const targetVerByName = new Map<string, TargetAttribute>(targetVersions.map((v) => [v.name.trim().toLowerCase(), v]));
 
   for (const sv of sourceVersions) {
@@ -117,13 +120,13 @@ export async function syncAttributes(
     } else {
       try {
         const created = (await withRetry(() =>
-          targetBacklog.postVersion(targetProjectId, {
+          targetBacklog.postVersions(targetProjectId, {
             name: sv.name,
             description: sv.description || undefined,
             startDate: sv.startDate || undefined,
             releaseDueDate: sv.releaseDueDate || undefined,
           }),
-        )) as TargetAttribute;
+        )) as unknown as TargetAttribute;
         versionMap.set(sv.id, created.id);
         console.log(`[バージョン] 新規作成: '${sv.name}' (新ID: ${created.id})`);
       } catch (err) {

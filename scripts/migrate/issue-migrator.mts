@@ -1,6 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type * as backlogjs from "backlog-js";
+import FormData from "isomorphic-form-data";
 
 interface SourceIssueAttachment {
   id: number;
@@ -110,16 +111,15 @@ export async function migrateIssues(
       for (const attFile of attFiles) {
         const filePath = resolve(attachmentsDir, attFile);
         const fileBuffer = await readFile(filePath);
-        // 元の添付ファイル情報を特定するための検索
         const originalAtt = oldIssue.attachments?.find((a) => String(a.id) === attFile);
         const filename = originalAtt ? originalAtt.name : attFile;
 
-        const uploaded = (await withRetry(() =>
-          targetBacklog.postSpaceAttachment({
-            filename,
-            file: fileBuffer,
-          }),
-        )) as { id: number };
+        const form = new FormData();
+        form.append("file", fileBuffer, filename);
+
+        const uploaded = (await withRetry(() => targetBacklog.postSpaceAttachment(form as unknown as FormData))) as unknown as {
+          id: number;
+        };
         attachmentIds.push(uploaded.id);
       }
     } catch (_e) {
@@ -165,7 +165,7 @@ export async function migrateIssues(
 
     let newIssue: { id: number; issueKey: string } | null = null;
     try {
-      newIssue = (await withRetry(() => targetBacklog.postIssue(postParams as never))) as { id: number; issueKey: string };
+      newIssue = (await withRetry(() => targetBacklog.postIssue(postParams as never))) as unknown as { id: number; issueKey: string };
       issueIdMap.set(oldIssue.id, newIssue.id);
       console.log(`${issueLogPrefix} 新課題作成成功: ${newIssue.issueKey} (ID: ${newIssue.id})`);
     } catch (err) {
@@ -215,7 +215,7 @@ export async function migrateIssues(
           }
         }
 
-        await withRetry(() => targetBacklog.postComment(newIssue.id, commentParams as never));
+        await withRetry(() => targetBacklog.postIssueComments(newIssue.id, commentParams as never));
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
         console.warn(`${issueLogPrefix} コメント投稿失敗 (ID: ${comment.id}):`, errMsg);

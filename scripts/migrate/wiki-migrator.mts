@@ -1,6 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type * as backlogjs from "backlog-js";
+import FormData from "isomorphic-form-data";
 
 interface WikiListItem {
   id: number;
@@ -46,7 +47,7 @@ export async function migrateWikis(
   // ターゲットプロジェクトの既存 Wiki 一覧を取得
   let targetWikis: TargetWiki[] = [];
   try {
-    targetWikis = (await withRetry(() => targetBacklog.getWikis({ projectIdOrKey: targetProjectId }))) as TargetWiki[];
+    targetWikis = (await withRetry(() => targetBacklog.getWikis({ projectIdOrKey: targetProjectId }))) as unknown as TargetWiki[];
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     console.warn("ターゲットスペースの Wiki 一覧取得に失敗しました（Wiki機能が無効の可能性があります）。", errMsg);
@@ -80,12 +81,13 @@ export async function migrateWikis(
         for (const file of attFiles) {
           const filePath = resolve(attachmentsDir, file);
           const fileBuffer = await readFile(filePath);
-          const uploaded = (await withRetry(() =>
-            targetBacklog.postSpaceAttachment({
-              filename: file,
-              file: fileBuffer,
-            }),
-          )) as { id: number };
+
+          const form = new FormData();
+          form.append("file", fileBuffer, file);
+
+          const uploaded = (await withRetry(() => targetBacklog.postSpaceAttachment(form as unknown as FormData))) as unknown as {
+            id: number;
+          };
           attachmentIds.push(uploaded.id);
         }
       } catch (_e) {
@@ -112,17 +114,17 @@ export async function migrateWikis(
             content: wikiData?.content || "",
             mailNotify: false,
           }),
-        )) as { id: number };
+        )) as unknown as { id: number };
         wikiId = created.id;
         console.log(`[Wiki] 新規作成: '${wikiName}' (ID: ${wikiId})`);
       }
 
-      // 添付ファイルの紐付け
-      for (const attId of attachmentIds) {
+      // 添付ファイルの紐付け (postWikisAttachments)
+      if (attachmentIds.length > 0) {
         try {
-          await withRetry(() => targetBacklog.postWikiAttachment(wikiId, attId));
+          await withRetry(() => targetBacklog.postWikisAttachments(wikiId, attachmentIds));
         } catch (_e) {
-          console.warn(`[Wiki] 添付ファイル紐付け失敗: Wiki '${wikiName}', AttID: ${attId}`);
+          console.warn(`[Wiki] 添付ファイル紐付け失敗: Wiki '${wikiName}'`);
         }
       }
     });

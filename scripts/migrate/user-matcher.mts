@@ -1,15 +1,22 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import type * as backlogjs from "backlog-js";
 
 export interface UserMatchResult {
   userMap: Map<number, number>; // sourceUserId -> targetUserId
   unmappedUsers: Array<{ id: number; name: string; mailAddress?: string }>;
 }
 
+export interface BacklogUserItem {
+  id: number;
+  name: string;
+  mailAddress?: string;
+  userId?: string;
+  [key: string]: unknown;
+}
+
 export async function matchUsers(
   sourceUsers: Array<{ id: number; name: string; mailAddress?: string; userId?: string }>,
-  targetUsers: Array<backlogjs.Entity.User>,
+  targetUsers: Array<BacklogUserItem>,
   distConfigsDir: string,
   defaultTargetUserId: number,
 ): Promise<UserMatchResult> {
@@ -28,9 +35,9 @@ export async function matchUsers(
   }
 
   // ターゲットユーザーのインデックス化
-  const targetByEmail = new Map<string, backlogjs.Entity.User>();
-  const targetByName = new Map<string, backlogjs.Entity.User>();
-  const targetByUserId = new Map<string, backlogjs.Entity.User>();
+  const targetByEmail = new Map<string, BacklogUserItem>();
+  const targetByName = new Map<string, BacklogUserItem>();
+  const targetByUserId = new Map<string, BacklogUserItem>();
 
   for (const tu of targetUsers) {
     if (tu.mailAddress) {

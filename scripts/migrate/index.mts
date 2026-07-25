@@ -5,10 +5,10 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as backlogjs from "backlog-js";
 import { config } from "dotenv";
-import { syncAttributes } from "./attribute-sync.mts";
-import { migrateIssues } from "./issue-migrator.mts";
-import { matchUsers } from "./user-matcher.mts";
-import { migrateWikis } from "./wiki-migrator.mts";
+import { syncAttributes } from "./attribute-sync";
+import { migrateIssues } from "./issue-migrator";
+import { matchUsers } from "./user-matcher";
+import { migrateWikis } from "./wiki-migrator";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
