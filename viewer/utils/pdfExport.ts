@@ -7,45 +7,34 @@ interface PdfExportOptions {
   title?: string;
 }
 
-export async function exportElementToPdf({ element, filename, title }: PdfExportOptions): Promise<void> {
-  const wrapper = document.createElement("div");
-  wrapper.style.position = "absolute";
-  wrapper.style.left = "-9999px";
-  wrapper.style.top = "0";
-  wrapper.style.width = "800px";
-  wrapper.style.padding = "24px";
-  wrapper.style.background = "#ffffff";
-  wrapper.style.color = "#1f2328";
-  wrapper.style.fontFamily = "system-ui, sans-serif";
+export async function exportElementToPdf({ element, filename }: PdfExportOptions): Promise<void> {
+  const excludeNodes = element.querySelectorAll<HTMLElement>(".export-exclude");
 
-  if (title) {
-    const heading = document.createElement("h1");
-    heading.textContent = title;
-    heading.style.fontSize = "24px";
-    heading.style.marginBottom = "16px";
-    heading.style.borderBottom = "1px solid #d0d7de";
-    heading.style.paddingBottom = "8px";
-    wrapper.appendChild(heading);
-  }
-
-  const clone = element.cloneNode(true) as HTMLElement;
-  clone.querySelectorAll("button, .export-exclude").forEach((node) => node.remove());
-  wrapper.appendChild(clone);
-  document.body.appendChild(wrapper);
+  // 一時的に除外要素を非表示にする
+  excludeNodes.forEach((node) => {
+    node.style.display = "none";
+  });
 
   try {
-    await html2pdf()
-      .set({
-        margin: [10, 10, 10, 10],
-        filename: `${sanitizeFilename(filename)}.pdf`,
-        image: { type: "jpeg", quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ["avoid-all", "css", "legacy"] },
-      })
-      .from(wrapper)
-      .save();
+    const options = {
+      margin: [10, 10, 10, 10],
+      filename: `${sanitizeFilename(filename)}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+      },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: ["avoid-all", "css", "legacy"] },
+    };
+
+    await html2pdf().set(options).from(element).save();
   } finally {
-    document.body.removeChild(wrapper);
+    // 非表示にした除外要素を復元する
+    excludeNodes.forEach((node) => {
+      node.style.display = "";
+    });
   }
 }

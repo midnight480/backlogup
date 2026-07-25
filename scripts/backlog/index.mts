@@ -415,20 +415,38 @@ try {
           await writeFile(resolve(distDoc, "comments.json"), JSON.stringify([]), { encoding: "utf-8" });
         }
 
+        const attachmentMap = new Map<number, string>();
         if (documentDetail.attachments && documentDetail.attachments.length > 0) {
+          for (const att of documentDetail.attachments) {
+            attachmentMap.set(att.id, att.name);
+          }
+        }
+
+        // json内からファイルIDを抽出
+        if (documentDetail.json) {
+          const jsonStr = typeof documentDetail.json === "string" ? documentDetail.json : JSON.stringify(documentDetail.json);
+          const matches = jsonStr.matchAll(/\/file\/(\d+)/g);
+          for (const match of matches) {
+            const fileId = parseInt(match[1], 10);
+            if (!isNaN(fileId) && !attachmentMap.has(fileId)) {
+              attachmentMap.set(fileId, `attachment_${fileId}`);
+            }
+          }
+        }
+
+        if (attachmentMap.size > 0) {
           const distDocAttachments = resolve(distDoc, "attachments");
           await mkdir(distDocAttachments, { recursive: true });
 
-          for (const [attIndex, attachment] of documentDetail.attachments.entries()) {
+          for (const [attId, attName] of attachmentMap.entries()) {
             try {
-              const url = new URL(`${backlogApiBase}/documents/${doc.id}/attachments/${attachment.id}`);
+              const url = new URL(`${backlogApiBase}/documents/${doc.id}/attachments/${attId}`);
               url.searchParams.set("apiKey", apiKey!);
 
-              // Wrap regular fetch in retry manually for custom binary attachments
               const attRes = await withRetry(async () => {
                 const res = await fetch(url.toString());
                 if (!res.ok) {
-                  const err: any = new Error(`Backlog API error: ${res.status} for /documents/${doc.id}/attachments/${attachment.id}`);
+                  const err: any = new Error(`Backlog API error: ${res.status} for /documents/${doc.id}/attachments/${attId}`);
                   err.status = res.status;
                   throw err;
                 }
@@ -436,9 +454,9 @@ try {
               });
 
               const buffer = await attRes.arrayBuffer();
-              await writeFile(resolve(distDocAttachments, `${attachment.id}`), Buffer.from(buffer));
+              await writeFile(resolve(distDocAttachments, `${attId}`), Buffer.from(buffer));
             } catch (e) {
-              console.warn(`${docLogPrefix} attachment download failed:`, attachment.id, attachment.name, e);
+              console.warn(`${docLogPrefix} attachment download failed:`, attId, attName, e);
             }
           }
         }
