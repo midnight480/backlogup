@@ -162,7 +162,8 @@ function showMenu(): void {
   print("   3) ビューア（閲覧画面）を起動する");
   print("   4) データを全消去してからバックアップし直す");
   print("   5) バックアップデータを別のBacklogへ移行(マイグレーション)する");
-  print("   6) 設定ファイル(.env)を開いて編集する");
+  print("   6) 移行先のユーザー一覧を取得する (ユーザーマッピング自動化用)");
+  print("   7) 設定ファイル(.env)を開いて編集する");
   print("   0) 終了する");
   print("==================================================");
 }
@@ -223,6 +224,20 @@ async function handleChoice(choice: string): Promise<boolean> {
       return true;
     }
     case "6": {
+      print("");
+      print("▶ 移行先 Backlog スペースのユーザー一覧を取得します...");
+      const ready = await ensureTargetEnv();
+      if (!ready) return true;
+
+      const code = runNpm(["run", "fetch:target-users"]);
+      print(
+        code === 0
+          ? "✅ 移行先ユーザー一覧の取得が完了しました。ビューワでユーザーマッピングを自動確認できます。"
+          : "❌ 移行先ユーザー一覧の取得中にエラーが発生しました。",
+      );
+      return true;
+    }
+    case "7": {
       if (!existsSync(envPath)) {
         await ensureEnv();
       } else {
@@ -236,7 +251,7 @@ async function handleChoice(choice: string): Promise<boolean> {
     case "exit":
       return false;
     default:
-      print("⚠️ 0〜6 の番号を入力してください。");
+      print("⚠️ 0〜7 の番号を入力してください。");
       return true;
   }
 }

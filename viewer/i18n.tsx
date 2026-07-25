@@ -99,6 +99,11 @@ export const dict = {
     exporting: "Exporting...",
     exportCsvDisabled: "Load issues before exporting",
     exportContentDisabled: "Load content before exporting",
+
+    // User Mapping
+    userMapping: "User Mapping",
+    userMappingTitle: "Migration User Mapping Editor",
+    userMappingSubtitle: "Map source Backlog users to target space users and export user-mapping.json",
   },
   ja: {
     dashboard: "ダッシュボード",
@@ -195,6 +200,11 @@ export const dict = {
     exporting: "出力中...",
     exportCsvDisabled: "課題の読み込み完了後にダウンロードできます",
     exportContentDisabled: "コンテンツの読み込み完了後に出力できます",
+
+    // User Mapping
+    userMapping: "ユーザーマッピング",
+    userMappingTitle: "移行用 ユーザーマッピングエディタ",
+    userMappingSubtitle: "移行元ユーザーと移行先ユーザーを紐付け、user-mapping.json を作成・エクスポートします",
   },
 };
 

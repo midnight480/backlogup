@@ -142,6 +142,30 @@ function sharedFilesApiPlugin(env) {
         }
         sendJson(res, 200, { results });
       });
+
+      server.middlewares.use("/api/user-mapping/save", async (req, res) => {
+        if (req.method !== "POST") {
+          sendJson(res, 405, { error: "method not allowed" });
+          return;
+        }
+
+        try {
+          const body = await readJsonBody(req);
+          const mapping = body.mapping || body;
+          const jsonContent = JSON.stringify(mapping, null, 2);
+
+          const targetPath1 = path.resolve(__dirname, "scripts/backlog/dist/assets/user-mapping.json");
+          const targetPath2 = path.resolve(__dirname, "user-mapping.json");
+
+          fs.mkdirSync(path.dirname(targetPath1), { recursive: true });
+          fs.writeFileSync(targetPath1, jsonContent, "utf-8");
+          fs.writeFileSync(targetPath2, jsonContent, "utf-8");
+
+          sendJson(res, 200, { ok: true, message: "user-mapping.json saved directly to server workspace" });
+        } catch (e) {
+          sendJson(res, 500, { error: String(e?.message || e) });
+        }
+      });
     },
   };
 }
