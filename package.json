@@ -10,6 +10,7 @@
     "backup:issue": "tsx scripts/backlog/index.mts",
     "backup:textsearch": "tsx scripts/textsearch/index.mts",
     "download:sharedfiles": "tsx scripts/backlog/download-shared-files.mts",
+    "migrate": "tsx scripts/migrate/index.mts",
     "dev": "vite",
     "build": "vite build"
   },
