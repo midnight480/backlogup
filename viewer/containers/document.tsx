@@ -541,7 +541,7 @@ const TiptapViewer: React.FC<TiptapViewerProps> = ({ content, docId }) => {
   }
 
   return (
-    <div className="prose prose-sm max-w-none dark:prose-invert ProseMirror-container">
+    <div className="prose prose-sm max-w-none ProseMirror-container">
       <style>{`
                 .ProseMirror-container .ProseMirror {
                     outline: none;

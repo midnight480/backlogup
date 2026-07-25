@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useI18n } from "../i18n";
 
 export interface SourceUser {
@@ -21,6 +21,123 @@ export interface MatchCandidate {
   reason?: "email" | "name" | "userId" | "manual";
   status: "accepted" | "rejected" | "pending";
 }
+
+const UserSearchableSelect: React.FC<{
+  value: string | number;
+  targetUsers: TargetUser[];
+  onChange: (val: string | number) => void;
+  lang: string;
+}> = ({ value, targetUsers, onChange, lang }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedUser = targetUsers.find((u) => String(u.id) === String(value));
+
+  const filtered = targetUsers.filter((u) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      u.name?.toLowerCase().includes(q) ||
+      (u.mailAddress && u.mailAddress.toLowerCase().includes(q)) ||
+      (u.userId && u.userId.toLowerCase().includes(q)) ||
+      String(u.id).includes(q)
+    );
+  });
+
+  const placeholderText = lang === "ja" ? "— 未選択 (デフォルトユーザー適用) —" : "— Unselected (Default User) —";
+
+  return (
+    <div className="relative flex-1" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => {
+          setIsOpen(!isOpen);
+          setSearch("");
+        }}
+        className="w-full py-1.5 px-3 bg-white border border-slate-200 hover:border-slate-300 rounded-lg text-xs flex items-center justify-between text-left focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-xs transition-all"
+      >
+        <span className={`truncate pr-2 ${selectedUser ? "text-slate-900 font-medium" : "text-slate-400"}`}>
+          {selectedUser ? `${selectedUser.name} (${selectedUser.mailAddress || selectedUser.id})` : placeholderText}
+        </span>
+        <span className="material-symbols-outlined text-[16px] text-slate-400 ml-1 shrink-0">
+          {isOpen ? "expand_less" : "expand_more"}
+        </span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-[60] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-100 min-w-[280px]">
+          <div className="p-2 border-b border-slate-100 bg-slate-50/80 sticky top-0 z-10">
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[16px]">search</span>
+              <input
+                type="text"
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={lang === "ja" ? "名前やメールアドレスで検索..." : "Search name or email..."}
+                className="w-full pl-8 pr-3 py-1 bg-white border border-slate-200 rounded-md text-xs outline-none focus:border-emerald-500 text-slate-800"
+              />
+            </div>
+          </div>
+          <div className="overflow-y-auto max-h-52 p-1 space-y-0.5">
+            <button
+              type="button"
+              onClick={() => {
+                onChange("");
+                setIsOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 rounded-md text-xs transition-colors flex items-center justify-between ${
+                !value ? "bg-emerald-50 text-emerald-800 font-bold" : "text-slate-500 hover:bg-slate-100"
+              }`}
+            >
+              <span className="truncate">{placeholderText}</span>
+              {!value && <span className="material-symbols-outlined text-[14px] text-emerald-600 shrink-0">check</span>}
+            </button>
+            {filtered.length === 0 ? (
+              <div className="px-3 py-4 text-center text-xs text-slate-400">
+                {lang === "ja" ? "該当するユーザーが見つかりません" : "No matching users found"}
+              </div>
+            ) : (
+              filtered.map((u) => {
+                const isSelected = String(u.id) === String(value);
+                return (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => {
+                      onChange(u.id);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 rounded-md text-xs transition-colors flex items-center justify-between ${
+                      isSelected ? "bg-emerald-50 text-emerald-900 font-bold" : "text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    <div className="truncate pr-2">
+                      <div className="font-semibold text-slate-900 truncate">{u.name}</div>
+                      <div className="text-[10px] text-slate-400 truncate">{u.mailAddress || `ID: ${u.id}`}</div>
+                    </div>
+                    {isSelected && <span className="material-symbols-outlined text-[16px] text-emerald-600 shrink-0">check</span>}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const UserMapping = () => {
   const { t, lang } = useI18n();
@@ -118,29 +235,6 @@ export const UserMapping = () => {
     };
     loadDefaultAssets();
   }, []);
-
-  // Sample data charger
-  const loadSampleData = () => {
-    const sampleSource: SourceUser[] = [
-      { id: 101, name: "山田 太郎", mailAddress: "taro.yamada@example.com", userId: "yamada_t" },
-      { id: 102, name: "佐藤 花子", mailAddress: "hanako.sato@example.com", userId: "sato_h" },
-      { id: 103, name: "鈴木 一郎", mailAddress: "ichiro.suzuki@example.org", userId: "suzuki_i" },
-      { id: 104, name: "John Smith", mailAddress: "john.smith@example.net", userId: "jsmith" },
-      { id: 105, name: "開発チーム共有アカウント", mailAddress: "", userId: "dev_team" },
-    ];
-
-    const sampleTarget: TargetUser[] = [
-      { id: 201, name: "山田 太郎", mailAddress: "taro.yamada@example.com", userId: "yamada_t" },
-      { id: 202, name: "佐藤 花子", mailAddress: "hanako.sato@newdomain.com", userId: "sato_h" },
-      { id: 203, name: "John Smith", mailAddress: "john.smith@example.net", userId: "jsmith" },
-      { id: 204, name: "管理者 ユーザー", mailAddress: "admin@example.com", userId: "admin" },
-    ];
-
-    setSourceUsers(sampleSource);
-    setTargetUsers(sampleTarget);
-    runAutoMatchForData(sampleSource, sampleTarget);
-    showToast(lang === "ja" ? "サンプルデータを読み込みました" : "Sample data loaded");
-  };
 
   // Apply matching candidates to mapping table & go to Step 2
   const applyMatchesAndProceed = () => {
@@ -341,31 +435,22 @@ export const UserMapping = () => {
     <div className="space-y-6">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white dark:bg-blue-600 px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 border border-slate-700 animate-bounce">
-          <span className="material-symbols-outlined text-green-400">check_circle</span>
-          <span className="text-body-md font-medium">{toastMessage}</span>
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 border border-slate-700 animate-bounce">
+          <span className="material-symbols-outlined text-emerald-400">check_circle</span>
+          <span className="text-sm font-medium">{toastMessage}</span>
         </div>
       )}
 
       {/* Header Banner */}
-      <div className="bg-white dark:bg-slate-900 border border-outline-variant dark:border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-headline-md font-bold text-on-surface dark:text-white flex items-center gap-3">
-            <span className="material-symbols-outlined text-primary text-[32px]">sync_alt</span>
+          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-3">
+            <span className="material-symbols-outlined text-emerald-600 text-[28px]">sync_alt</span>
             {t("userMappingTitle" as any)}
           </h1>
-          <p className="text-body-md text-outline dark:text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             {t("userMappingSubtitle" as any)}
           </p>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={loadSampleData}
-            className="px-4 py-2 text-body-sm font-semibold rounded-xl border border-outline-variant hover:bg-surface-container dark:border-slate-700 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
-          >
-            <span className="material-symbols-outlined text-[18px]">labs</span>
-            {lang === "ja" ? "サンプルデータで試す" : "Load Sample Data"}
-          </button>
         </div>
       </div>
 
@@ -373,68 +458,68 @@ export const UserMapping = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <button
           onClick={() => setStep(1)}
-          className={`p-4 rounded-xl border-2 text-left flex items-center gap-4 transition-all ${
+          className={`p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all ${
             step === 1
-              ? "border-primary bg-primary/5 dark:bg-blue-900/20 text-primary dark:text-blue-400"
-              : "border-outline-variant dark:border-slate-800 bg-white dark:bg-slate-900 text-outline hover:border-primary/50"
+              ? "border-emerald-600 bg-emerald-50/60 text-emerald-800 shadow-xs"
+              : "border-slate-200/80 bg-white text-slate-500 hover:border-slate-300"
           }`}
         >
           <div
-            className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-body-md ${
-              step === 1 ? "bg-primary text-white" : "bg-surface-container dark:bg-slate-800"
+            className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm ${
+              step === 1 ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"
             }`}
           >
             1
           </div>
           <div>
-            <div className="text-body-md font-bold">{lang === "ja" ? "1. 自動照合確認 (Auto-Match)" : "1. Auto-Matching Review"}</div>
-            <div className="text-body-sm opacity-80">{lang === "ja" ? "メール・名前にて一括提案" : "Match by Email / Name"}</div>
+            <div className="text-sm font-bold text-slate-800">{lang === "ja" ? "1. 自動照合確認 (Auto-Match)" : "1. Auto-Matching Review"}</div>
+            <div className="text-xs opacity-80">{lang === "ja" ? "メール・名前にて一括提案" : "Match by Email / Name"}</div>
           </div>
         </button>
 
         <button
           onClick={() => setStep(2)}
-          className={`p-4 rounded-xl border-2 text-left flex items-center gap-4 transition-all ${
+          className={`p-4 rounded-2xl border-2 text-left flex items-center gap-4 transition-all ${
             step === 2
-              ? "border-primary bg-primary/5 dark:bg-blue-900/20 text-primary dark:text-blue-400"
-              : "border-outline-variant dark:border-slate-800 bg-white dark:bg-slate-900 text-outline hover:border-primary/50"
+              ? "border-emerald-600 bg-emerald-50/60 text-emerald-800 shadow-xs"
+              : "border-slate-200/80 bg-white text-slate-500 hover:border-slate-300"
           }`}
         >
           <div
-            className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-body-md ${
-              step === 2 ? "bg-primary text-white" : "bg-surface-container dark:bg-slate-800"
+            className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm ${
+              step === 2 ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"
             }`}
           >
             2
           </div>
           <div>
-            <div className="text-body-md font-bold">{lang === "ja" ? "2. 手動編集 & 保存 (Edit & Save)" : "2. Edit & Export"}</div>
-            <div className="text-body-sm opacity-80">{lang === "ja" ? "個別割当 & user-mapping.json 保存" : "Export user-mapping.json"}</div>
+            <div className="text-sm font-bold text-slate-800">{lang === "ja" ? "2. 手動編集 & 保存 (Edit & Save)" : "2. Edit & Export"}</div>
+            <div className="text-xs opacity-80">{lang === "ja" ? "個別割当 & user-mapping.json 保存" : "Export user-mapping.json"}</div>
           </div>
         </button>
       </div>
 
       {/* Auto-Loaded Data Status Banner */}
-      <div className="bg-surface-container-low dark:bg-slate-800/60 border border-outline-variant dark:border-slate-800 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-4 text-body-sm">
+      <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-4 text-xs">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-green-500 text-[20px]">check_circle</span>
-            <span className="font-bold text-on-surface dark:text-white">
+            <span className="material-symbols-outlined text-emerald-500 text-[18px]">check_circle</span>
+            <span className="font-bold text-slate-800">
               {lang === "ja" ? `移行元ユーザー: ${sourceUsers.length} 件` : `Source Users: ${sourceUsers.length}`}
             </span>
           </div>
           <div className="flex items-center gap-2">
             {targetUsers.length > 0 ? (
               <>
-                <span className="material-symbols-outlined text-green-500 text-[20px]">check_circle</span>
-                <span className="font-bold text-on-surface dark:text-white">
+                <span className="material-symbols-outlined text-emerald-500 text-[18px]">check_circle</span>
+                <span className="font-bold text-slate-800">
                   {lang === "ja" ? `移行先ユーザー: ${targetUsers.length} 件 (自動読込)` : `Target Users: ${targetUsers.length}`}
                 </span>
               </>
             ) : (
               <>
-                <span className="material-symbols-outlined text-amber-500 text-[20px]">warning</span>
-                <span className="text-amber-700 dark:text-amber-400 font-medium">
+                <span className="material-symbols-outlined text-amber-500 text-[18px]">warning</span>
+                <span className="text-amber-700 font-medium">
                   {lang === "ja"
                     ? "移行先ユーザー未検出 (npm run fetch:target-users を実行またはファイルをドロップ)"
                     : "Target users missing (Run npm run fetch:target-users or drop file)"}
@@ -446,25 +531,25 @@ export const UserMapping = () => {
 
         {/* Collapsible Manual File Import Dropdown */}
         <details className="group">
-          <summary className="cursor-pointer text-body-sm font-semibold text-primary dark:text-blue-400 hover:underline list-none flex items-center gap-1">
+          <summary className="cursor-pointer text-xs font-semibold text-emerald-700 hover:underline list-none flex items-center gap-1">
             <span className="material-symbols-outlined text-[18px]">folder_open</span>
             {lang === "ja" ? "外部ファイルを個別選択 / ドロップ" : "Custom File Upload"}
           </summary>
-          <div className="mt-3 p-4 bg-white dark:bg-slate-900 border border-outline-variant dark:border-slate-700 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="p-3 border border-dashed border-outline-variant dark:border-slate-700 rounded-xl cursor-pointer hover:border-primary text-center">
-              <span className="text-body-xs font-bold text-outline dark:text-slate-300 block mb-1">
+          <div className="mt-3 p-4 bg-white border border-slate-200 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="p-3 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-emerald-500 text-center">
+              <span className="text-[11px] font-bold text-slate-600 block mb-1">
                 {lang === "ja" ? "移行元 Users (.json / .csv)" : "Source Users (.json / .csv)"}
               </span>
               <input type="file" accept=".json,.csv" onChange={(e) => handleFileUpload(e, "source")} className="hidden" />
-              <span className="text-body-xs bg-primary/10 text-primary px-3 py-1 rounded-lg inline-block font-bold">ファイルを選択</span>
+              <span className="text-[11px] bg-emerald-50 text-emerald-700 px-3 py-1 rounded-lg inline-block font-bold">ファイルを選択</span>
             </label>
 
-            <label className="p-3 border border-dashed border-outline-variant dark:border-slate-700 rounded-xl cursor-pointer hover:border-primary text-center">
-              <span className="text-body-xs font-bold text-outline dark:text-slate-300 block mb-1">
+            <label className="p-3 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-emerald-500 text-center">
+              <span className="text-[11px] font-bold text-slate-600 block mb-1">
                 {lang === "ja" ? "移行先 Users (.json / .csv)" : "Target Users (.json / .csv)"}
               </span>
               <input type="file" accept=".json,.csv" onChange={(e) => handleFileUpload(e, "target")} className="hidden" />
-              <span className="text-body-xs bg-green-600/10 text-green-600 px-3 py-1 rounded-lg inline-block font-bold">ファイルを選択</span>
+              <span className="text-[11px] bg-emerald-50 text-emerald-700 px-3 py-1 rounded-lg inline-block font-bold">ファイルを選択</span>
             </label>
           </div>
         </details>
@@ -472,14 +557,14 @@ export const UserMapping = () => {
 
       {/* STEP 1: Auto-Match Review */}
       {step === 1 && (
-        <div className="bg-white dark:bg-slate-900 border border-outline-variant dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h2 className="text-headline-sm font-bold text-on-surface dark:text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">psychology</span>
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <span className="material-symbols-outlined text-emerald-600">psychology</span>
                 {lang === "ja" ? "STEP 1: 自動マッチング結果の確認" : "STEP 1: Auto-Matching Review"}
               </h2>
-              <p className="text-body-sm text-outline dark:text-slate-400 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 {lang === "ja"
                   ? "メールアドレス・表示名・ユーザーIDの一致に基づいて自動提案されたマッピングです"
                   : "Suggested matches based on email address, user name, and user ID similarity"}
@@ -488,14 +573,14 @@ export const UserMapping = () => {
             <div className="flex gap-2">
               <button
                 onClick={acceptAllCandidates}
-                className="px-4 py-2 bg-green-600 text-white text-body-sm font-bold rounded-xl shadow hover:bg-green-700 transition-colors flex items-center gap-1.5"
+                className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-xs hover:bg-emerald-700 transition-colors flex items-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[18px]">done_all</span>
                 {lang === "ja" ? "全て承認" : "Accept All"}
               </button>
               <button
                 onClick={rejectAllCandidates}
-                className="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-on-surface dark:text-white text-body-sm font-bold rounded-xl hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5"
+                className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-200 transition-colors flex items-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[18px]">close</span>
                 {lang === "ja" ? "全て拒否" : "Reject All"}
@@ -503,86 +588,86 @@ export const UserMapping = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto border border-outline-variant dark:border-slate-800 rounded-xl">
-            <table className="w-full text-left text-body-md">
-              <thead className="bg-surface-container-low dark:bg-slate-800/80 text-outline dark:text-slate-300 font-bold border-b border-outline-variant dark:border-slate-800">
+          <div className="overflow-x-auto border border-slate-200/80 rounded-xl">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200/80">
                 <tr>
-                  <th className="p-4">{lang === "ja" ? "移行元 表示名 / メール" : "Source User"}</th>
-                  <th className="p-4">{lang === "ja" ? "提案する移行先ユーザー" : "Suggested Target User"}</th>
-                  <th className="p-4">{lang === "ja" ? "一致根拠" : "Match Reason"}</th>
-                  <th className="p-4 text-center">{lang === "ja" ? "判定" : "Decision"}</th>
+                  <th className="p-3.5">{lang === "ja" ? "移行元 表示名 / メール" : "Source User"}</th>
+                  <th className="p-3.5">{lang === "ja" ? "提案する移行先ユーザー" : "Suggested Target User"}</th>
+                  <th className="p-3.5">{lang === "ja" ? "一致根拠" : "Match Reason"}</th>
+                  <th className="p-3.5 text-center">{lang === "ja" ? "判定" : "Decision"}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-outline-variant dark:divide-slate-800">
+              <tbody className="divide-y divide-slate-100">
                 {matchCandidates.map((c, idx) => (
                   <tr
                     key={idx}
                     className={`transition-colors ${
                       c.status === "accepted"
-                        ? "bg-green-50/50 dark:bg-green-950/20"
+                        ? "bg-emerald-50/40"
                         : c.status === "rejected"
-                        ? "bg-red-50/50 dark:bg-red-950/20 opacity-60"
+                        ? "bg-rose-50/40 opacity-60"
                         : ""
                     }`}
                   >
-                    <td className="p-4">
-                      <div className="font-bold text-on-surface dark:text-white">{c.source.name}</div>
-                      <div className="text-body-sm text-outline dark:text-slate-400">{c.source.mailAddress || `ID: ${c.source.id}`}</div>
+                    <td className="p-3.5">
+                      <div className="font-bold text-slate-900">{c.source.name}</div>
+                      <div className="text-xs text-slate-400">{c.source.mailAddress || `ID: ${c.source.id}`}</div>
                     </td>
-                    <td className="p-4">
+                    <td className="p-3.5">
                       {c.target ? (
                         <div>
-                          <div className="font-bold text-on-surface dark:text-white">{c.target.name}</div>
-                          <div className="text-body-sm text-outline dark:text-slate-400">{c.target.mailAddress || `ID: ${c.target.id}`}</div>
+                          <div className="font-bold text-slate-900">{c.target.name}</div>
+                          <div className="text-xs text-slate-400">{c.target.mailAddress || `ID: ${c.target.id}`}</div>
                         </div>
                       ) : (
-                        <span className="text-outline italic text-body-sm">{lang === "ja" ? "— 候補なし —" : "— No candidate —"}</span>
+                        <span className="text-slate-400 italic text-xs">{lang === "ja" ? "— 候補なし —" : "— No candidate —"}</span>
                       )}
                     </td>
-                    <td className="p-4">
+                    <td className="p-3.5">
                       {c.reason === "email" && (
-                        <span className="px-2.5 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-bold text-body-xs rounded-full inline-flex items-center gap-1">
+                        <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold text-[11px] rounded-full inline-flex items-center gap-1">
                           <span className="material-symbols-outlined text-[14px]">mail</span>
                           {lang === "ja" ? "メールアドレス完全一致" : "Email exact match"}
                         </span>
                       )}
                       {c.reason === "name" && (
-                        <span className="px-2.5 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold text-body-xs rounded-full inline-flex items-center gap-1">
+                        <span className="px-2.5 py-1 bg-blue-100 text-blue-800 font-bold text-[11px] rounded-full inline-flex items-center gap-1">
                           <span className="material-symbols-outlined text-[14px]">badge</span>
                           {lang === "ja" ? "表示名一致" : "Name match"}
                         </span>
                       )}
                       {c.reason === "userId" && (
-                        <span className="px-2.5 py-1 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-bold text-body-xs rounded-full inline-flex items-center gap-1">
+                        <span className="px-2.5 py-1 bg-purple-100 text-purple-800 font-bold text-[11px] rounded-full inline-flex items-center gap-1">
                           <span className="material-symbols-outlined text-[14px]">fingerprint</span>
                           {lang === "ja" ? "ユーザーID一致" : "User ID match"}
                         </span>
                       )}
-                      {!c.reason && <span className="text-body-sm text-outline">—</span>}
+                      {!c.reason && <span className="text-xs text-slate-400">—</span>}
                     </td>
-                    <td className="p-4 text-center">
+                    <td className="p-3.5 text-center">
                       <div className="inline-flex gap-1">
                         <button
                           onClick={() => setCandidateStatus(idx, "accepted")}
-                          className={`p-2 rounded-lg transition-colors ${
+                          className={`p-1.5 rounded-lg transition-colors ${
                             c.status === "accepted"
-                              ? "bg-green-600 text-white"
-                              : "bg-surface-container dark:bg-slate-800 text-outline hover:text-on-surface"
+                              ? "bg-emerald-600 text-white"
+                              : "bg-slate-100 text-slate-500 hover:text-slate-800"
                           }`}
                           title="Accept"
                         >
-                          <span className="material-symbols-outlined text-[20px]">check</span>
+                          <span className="material-symbols-outlined text-[18px]">check</span>
                         </button>
                         <button
                           onClick={() => setCandidateStatus(idx, "rejected")}
-                          className={`p-2 rounded-lg transition-colors ${
+                          className={`p-1.5 rounded-lg transition-colors ${
                             c.status === "rejected"
-                              ? "bg-red-600 text-white"
-                              : "bg-surface-container dark:bg-slate-800 text-outline hover:text-on-surface"
+                              ? "bg-rose-600 text-white"
+                              : "bg-slate-100 text-slate-500 hover:text-slate-800"
                           }`}
                           title="Reject"
                         >
-                          <span className="material-symbols-outlined text-[20px]">close</span>
+                          <span className="material-symbols-outlined text-[18px]">close</span>
                         </button>
                       </div>
                     </td>
@@ -595,10 +680,10 @@ export const UserMapping = () => {
           <div className="flex justify-end pt-4">
             <button
               onClick={applyMatchesAndProceed}
-              className="px-6 py-3 bg-primary text-white rounded-xl font-bold text-body-md shadow hover:bg-primary/90 transition-colors flex items-center gap-2"
+              className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-xs shadow-sm hover:bg-emerald-700 transition-colors flex items-center gap-2"
             >
               {lang === "ja" ? "この内容で手動編集へ進む" : "Apply & Proceed to Manual Edit"}
-              <span className="material-symbols-outlined">arrow_forward</span>
+              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
             </button>
           </div>
         </div>
@@ -606,52 +691,52 @@ export const UserMapping = () => {
 
       {/* STEP 2: Manual Table Edit & Export */}
       {step === 2 && (
-        <div className="bg-white dark:bg-slate-900 border border-outline-variant dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-6">
           {/* Stats Bar */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-surface-container-low dark:bg-slate-800/60 p-4 rounded-xl border border-outline-variant dark:border-slate-800 flex items-center justify-between">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 flex items-center justify-between">
               <div>
-                <div className="text-body-xs font-bold uppercase text-outline dark:text-slate-400">{lang === "ja" ? "全ユーザー数" : "Total Users"}</div>
-                <div className="text-headline-md font-bold text-on-surface dark:text-white mt-1">{sourceUsers.length}</div>
+                <div className="text-[11px] font-bold uppercase text-slate-500">{lang === "ja" ? "全ユーザー数" : "Total Users"}</div>
+                <div className="text-xl font-bold text-slate-900 mt-1">{sourceUsers.length}</div>
               </div>
-              <span className="material-symbols-outlined text-primary text-[36px]">group</span>
+              <span className="material-symbols-outlined text-slate-400 text-[32px]">group</span>
             </div>
 
-            <div className="bg-green-50 dark:bg-green-950/30 p-4 rounded-xl border border-green-200 dark:border-green-800/40 flex items-center justify-between">
+            <div className="bg-emerald-50/60 p-4 rounded-xl border border-emerald-200/80 flex items-center justify-between">
               <div>
-                <div className="text-body-xs font-bold uppercase text-green-700 dark:text-green-400">{lang === "ja" ? "紐付け完了" : "Mapped"}</div>
-                <div className="text-headline-md font-bold text-green-800 dark:text-green-300 mt-1">{mappedCount}</div>
+                <div className="text-[11px] font-bold uppercase text-emerald-800">{lang === "ja" ? "紐付け完了" : "Mapped"}</div>
+                <div className="text-xl font-bold text-emerald-900 mt-1">{mappedCount}</div>
               </div>
-              <span className="material-symbols-outlined text-green-600 text-[36px]">task_alt</span>
+              <span className="material-symbols-outlined text-emerald-600 text-[32px]">task_alt</span>
             </div>
 
-            <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-xl border border-amber-200 dark:border-amber-800/40 flex items-center justify-between">
+            <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200/80 flex items-center justify-between">
               <div>
-                <div className="text-body-xs font-bold uppercase text-amber-700 dark:text-amber-400">{lang === "ja" ? "未設定" : "Unmapped"}</div>
-                <div className="text-headline-md font-bold text-amber-800 dark:text-amber-300 mt-1">{sourceUsers.length - mappedCount}</div>
+                <div className="text-[11px] font-bold uppercase text-amber-800">{lang === "ja" ? "未設定" : "Unmapped"}</div>
+                <div className="text-xl font-bold text-amber-900 mt-1">{sourceUsers.length - mappedCount}</div>
               </div>
-              <span className="material-symbols-outlined text-amber-600 text-[36px]">warning</span>
+              <span className="material-symbols-outlined text-amber-600 text-[32px]">warning</span>
             </div>
           </div>
 
           {/* Filter & Toolbar */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3 w-full sm:w-auto">
-              <div className="relative flex-1 sm:w-80">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+              <div className="relative flex-1 sm:w-72">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={lang === "ja" ? "ユーザー名・メール・IDで絞り込み..." : "Filter by name, email, ID..."}
-                  className="pl-10 pr-4 py-2 w-full bg-surface-container-low dark:bg-slate-800 border border-outline-variant dark:border-slate-700 rounded-xl text-body-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="pl-9 pr-4 py-2 w-full bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-800"
                 />
               </div>
 
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="py-2 px-3 bg-surface-container-low dark:bg-slate-800 border border-outline-variant dark:border-slate-700 rounded-xl text-body-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                className="py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-800"
               >
                 <option value="all">{lang === "ja" ? "すべて表示" : "Show All"}</option>
                 <option value="mapped">{lang === "ja" ? "設定済みのみ" : "Mapped Only"}</option>
@@ -660,66 +745,67 @@ export const UserMapping = () => {
             </div>
 
             {/* Export action buttons */}
-            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
               <button
                 onClick={copyMappingJson}
-                className="px-4 py-2.5 border border-outline-variant dark:border-slate-700 rounded-xl text-body-sm font-bold text-on-surface dark:text-white hover:bg-surface-container dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
+                className="px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5"
               >
-                <span className="material-symbols-outlined text-[18px]">content_copy</span>
+                <span className="material-symbols-outlined text-[16px] text-slate-500">content_copy</span>
                 {lang === "ja" ? "JSON コピー" : "Copy JSON"}
               </button>
 
               <button
                 onClick={downloadUsersCsv}
-                className="px-4 py-2.5 border border-outline-variant dark:border-slate-700 rounded-xl text-body-sm font-bold text-on-surface dark:text-white hover:bg-surface-container dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
+                className="px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5"
               >
-                <span className="material-symbols-outlined text-[18px]">csv</span>
+                <span className="material-symbols-outlined text-[16px] text-slate-500">csv</span>
                 users.csv
               </button>
 
               <button
                 onClick={downloadMappingJson}
-                className="px-5 py-2.5 bg-primary text-white rounded-xl text-body-sm font-bold shadow hover:bg-primary/90 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-xs hover:bg-emerald-700 transition-colors flex items-center gap-1.5"
               >
-                <span className="material-symbols-outlined text-[18px]">download</span>
+                <span className="material-symbols-outlined text-[16px]">download</span>
                 user-mapping.json {lang === "ja" ? "保存" : "Export"}
               </button>
             </div>
           </div>
 
           {/* Mapping Table */}
-          <div className="overflow-x-auto border border-outline-variant dark:border-slate-800 rounded-xl">
-            <table className="w-full text-left text-body-md">
-              <thead className="bg-surface-container-low dark:bg-slate-800/80 text-outline dark:text-slate-300 font-bold border-b border-outline-variant dark:border-slate-800">
+          <div className="overflow-x-auto border border-slate-200/80 rounded-xl">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200/80">
                 <tr>
-                  <th className="p-4 w-12">#</th>
-                  <th className="p-4">{lang === "ja" ? "移行元 ID / 表示名" : "Source User ID / Name"}</th>
-                  <th className="p-4">{lang === "ja" ? "移行元 メールアドレス" : "Source Email"}</th>
-                  <th className="p-4">{lang === "ja" ? "移行先 ユーザー (Destination)" : "Destination User"}</th>
-                  <th className="p-4 w-32 whitespace-nowrap text-center">{lang === "ja" ? "状態" : "Status"}</th>
+                  <th className="p-3.5 w-12">#</th>
+                  <th className="p-3.5">{lang === "ja" ? "移行元 ID / 表示名" : "Source User ID / Name"}</th>
+                  <th className="p-3.5">{lang === "ja" ? "移行元 メールアドレス" : "Source Email"}</th>
+                  <th className="p-3.5">{lang === "ja" ? "移行先 ユーザー (Destination)" : "Destination User"}</th>
+                  <th className="p-3.5 w-28 whitespace-nowrap text-center">{lang === "ja" ? "状態" : "Status"}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-outline-variant dark:divide-slate-800">
+              <tbody className="divide-y divide-slate-100">
                 {filteredSourceUsers.map((su, idx) => {
                   const mapKey = su.mailAddress || su.name || String(su.id);
                   const currentVal = userMapping[mapKey] ?? "";
 
                   return (
-                    <tr key={idx} className="hover:bg-surface-container-low/50 dark:hover:bg-slate-800/40 transition-colors">
-                      <td className="p-4 text-outline font-mono text-body-sm">{idx + 1}</td>
-                      <td className="p-4">
-                        <div className="font-bold text-on-surface dark:text-white">{su.name}</div>
-                        <div className="text-body-xs font-mono text-outline dark:text-slate-400">ID: {su.id}</div>
+                    <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="p-3.5 text-slate-400 font-mono text-xs">{idx + 1}</td>
+                      <td className="p-3.5">
+                        <div className="font-bold text-slate-900">{su.name}</div>
+                        <div className="text-[11px] font-mono text-slate-400">ID: {su.id}</div>
                       </td>
-                      <td className="p-4 text-body-sm text-outline dark:text-slate-400">
+                      <td className="p-3.5 text-xs text-slate-500">
                         {su.mailAddress || <span className="italic opacity-50">—</span>}
                       </td>
-                      <td className="p-4">
+                      <td className="p-3.5">
                         <div className="flex gap-2 items-center">
-                          <select
+                          <UserSearchableSelect
                             value={currentVal}
-                            onChange={(e) => {
-                              const newVal = e.target.value;
+                            targetUsers={targetUsers}
+                            lang={lang}
+                            onChange={(newVal) => {
                               setUserMapping((prev) => {
                                 const copy = { ...prev };
                                 if (newVal) copy[mapKey] = newVal;
@@ -727,25 +813,17 @@ export const UserMapping = () => {
                                 return copy;
                               });
                             }}
-                            className="flex-1 py-2 px-3 bg-white dark:bg-slate-800 border border-outline-variant dark:border-slate-700 rounded-xl text-body-sm focus:outline-none focus:ring-1 focus:ring-primary text-on-surface dark:text-white"
-                          >
-                            <option value="">{lang === "ja" ? "— 未選択 (デフォルトユーザー適用) —" : "— Unselected (Default User) —"}</option>
-                            {targetUsers.map((tu) => (
-                              <option key={tu.id} value={tu.id}>
-                                {tu.name} ({tu.mailAddress || tu.id})
-                              </option>
-                            ))}
-                          </select>
+                          />
                         </div>
                       </td>
-                      <td className="p-4 text-center whitespace-nowrap">
+                      <td className="p-3.5 text-center whitespace-nowrap">
                         {currentVal ? (
-                          <span className="px-3 py-1 bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-400 font-bold text-body-xs rounded-full inline-flex items-center gap-1.5 whitespace-nowrap">
+                          <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 font-bold text-[11px] rounded-full inline-flex items-center gap-1 whitespace-nowrap">
                             <span className="material-symbols-outlined text-[14px]">check</span>
                             {lang === "ja" ? "設定済" : "Mapped"}
                           </span>
                         ) : (
-                          <span className="px-3 py-1 bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 font-bold text-body-xs rounded-full inline-flex items-center gap-1.5 whitespace-nowrap">
+                          <span className="px-2.5 py-0.5 bg-amber-100 text-amber-800 font-bold text-[11px] rounded-full inline-flex items-center gap-1 whitespace-nowrap">
                             <span className="material-symbols-outlined text-[14px]">priority_high</span>
                             {lang === "ja" ? "未設定" : "Unmapped"}
                           </span>

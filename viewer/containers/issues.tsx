@@ -161,21 +161,20 @@ export const Issues: React.FC = observer(() => {
         </div>
 
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
-          <div className="bg-[#DDF4FF] dark:bg-primary/20 border border-primary rounded-xl p-6 shadow-sm">
-            <div className="flex items-start gap-4">
-              <span className="material-symbols-outlined text-primary">cloud_off</span>
+          <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-xl p-5 shadow-xs">
+            <div className="flex items-start gap-3.5">
+              <span className="material-symbols-outlined text-emerald-700 text-[20px] mt-0.5">cloud_off</span>
               <div>
-                <h4 className="text-body-md font-bold text-[#0550AE] mb-1">{t("archiveIntegrityNote")}</h4>
-                <p className="text-body-sm text-primary dark:text-blue-300 leading-tight">{t("archiveIntegrityDesc")}</p>
+                <h4 className="text-sm font-bold text-emerald-900 mb-1">{t("archiveIntegrityNote")}</h4>
+                <p className="text-xs text-emerald-800/90 leading-relaxed">{t("archiveIntegrityDesc")}</p>
               </div>
             </div>
           </div>
 
-          <div className="relative rounded-xl overflow-hidden h-48 border border-outline-variant shadow-sm bg-primary-fixed">
-            <div className="absolute inset-0 bg-gradient-to-t from-primary/80 to-primary/20 z-10"></div>
-            <div className="absolute bottom-4 left-4 z-20">
-              <span className="text-white font-bold text-headline-sm">{t("vaultAnalytics")}</span>
-              <p className="text-white/80 text-body-sm">{t("localSearchIndexed")}</p>
+          <div className="relative rounded-2xl overflow-hidden h-44 border border-emerald-600/20 shadow-sm bg-gradient-to-br from-emerald-600 to-teal-700 p-6 flex flex-col justify-end">
+            <div className="relative z-10">
+              <span className="text-white font-bold text-lg">{t("vaultAnalytics")}</span>
+              <p className="text-white/80 text-xs mt-1">{t("localSearchIndexed")}</p>
             </div>
           </div>
         </div>
