@@ -9,6 +9,36 @@
 BacklogUp calls the Backlog API to back up data for a specified project.  
 The backed-up data can be browsed using a lightweight local viewer, or migrated/imported to another Backlog space or project.
 
+## How This Differs from the Official Migration Tool
+
+If you landed here because Nulab's official migration tool ([BacklogMigration-Backlog](https://github.com/nulab/BacklogMigration-Backlog)) refused to migrate your project, this is the difference that matters.
+
+The official tool reproduces the **entire history** of a project — including every status definition that has ever existed and every rename applied to one. That fidelity is exactly what makes it fail on long-lived projects:
+
+- Projects where statuses have been added or renamed **9 or more times cannot be migrated at all**.
+- Projects that have ever added a custom status **cannot be migrated from ASP to Enterprise**.
+
+BacklogUp takes the opposite approach. It reads the **latest snapshot** of the project and re-creates that in the target space. The project's configuration history is never read, so those two walls simply don't apply — a project with 30 status renames behind it migrates the same as a fresh one.
+
+| | Official tool | BacklogUp |
+|---|---|---|
+| Unit of migration | Full project history | Latest snapshot |
+| 9+ status additions/renames | ❌ Cannot migrate | ✅ No restriction |
+| ASP → Enterprise with custom statuses | ❌ Cannot migrate | ✅ No restriction |
+| Custom statuses | Reproduced | Not reproduced (built-in 4 only) |
+| Original author / timestamps | Native fields | Text metadata header in body & comments |
+| Offline browsing before migrating | — | Local viewer included |
+
+### The trade-off
+
+Discarding history is what buys the compatibility, and you pay for it:
+
+- **Custom statuses are not reproduced.** Only the four built-in statuses (Open / In Progress / Resolved / Closed) are applied. Issues sitting in a custom status land in the target with their status unchanged.
+- **History is replayed as content, not as native history.** Comments are re-posted in chronological order, but the original author and timestamp appear as a metadata header in the text — the target's own change log will show the migrating API user and the migration date.
+- **Attribute definitions are recreated, not preserved.** Missing issue types, categories and milestones are created automatically on the target side; they are not identical objects.
+
+If you need a byte-faithful reproduction of a project's full history, use the official tool. If the official tool won't run on your project — or you just need the content moved and browsable — this is the pragmatic alternative.
+
 ## Features & Specifications
 
 ### 1. Data Backup Feature (`npm run backup`)
@@ -49,6 +79,7 @@ Migrate/import backed-up data (issues, wiki pages, attachments, settings) to ano
 - **Automatic User Mapping**: Matches source users to target space users by exact email match and name/ID matching. Manual override via `user-mapping.json` is also supported.
 - **Attribute Synchronization**: Automatically extracts target issue types, categories, and milestones (creates missing ones automatically).
 - **Sequential Issue & Wiki Reproduction**: Re-creates issues, comments, and attachments in chronological order. Adds metadata headers (original creator, creation date, original issue key) to descriptions and comments.
+- **Scope**: Issues and wikis only. Documents and shared files are backed up but **not** migrated — see [Migration Limitations](#migration-limitations).
 
 ---
 
@@ -154,22 +185,38 @@ Automatic user matching runs by default using email and name. If you want to spe
 - **Existing Issue Check**: Pauses automatically if the target project already contains issues. Set `ALLOW_EXISTING_ISSUES=true` in `.env` to continue ignoring issue numbers.
 
 ### Migration Limitations
-1. If the project key is changed after changing a parent issue, the parent issue change cannot be reflected.
-2. Previously existing issue types are created automatically during migration. Delete them manually after migration if needed.
-3. Stars attached to issues or Wikis are not migrated.
-4. If units are set for numeric custom fields, units in comment change history will not be migrated.
-5. Migration within the exact same project is not supported.
-6. `fitissuekey` and `filter` options cannot be used simultaneously.
-7. If custom attributes with identical names exist in source and target, data inconsistencies may occur. Check beforehand.
-8. Global search index is not migrated.
-9. Projects where custom statuses have been added cannot be migrated from ASP to Enterprise.
-10. Free plan environments cannot be migrated due to API rate limits.
-11. Parallel execution of this migration tool is not supported due to API rate limits.
-12. When migrating to a different space, Wiki image tags using IDs (`image#123`) will not display images.
-13. Projects with 9 or more status additions/changes cannot be migrated.
-14. Leading/trailing spaces or commas in attribute names (types, categories, statuses, versions, milestones, custom fields) may cause migration issues. Please clean them up prior to migration.
-15. Shared files, Subversion, and Git repositories are not migrated.
-16. Read/unread status of notifications is not migrated.
+
+The list below is derived from the actual implementation under `scripts/migrate/`, not from the official tool's documentation.
+
+**Not migrated at all**
+
+1. **Documents** — `npm run backup` archives them, but `npm run migrate` only processes issues and wikis (`scripts/migrate/index.mts`).
+2. **Shared files, Git and Subversion repositories.**
+3. **Custom fields (custom attributes)** — no custom field values are read or posted. Issues arrive with custom fields empty.
+4. **Stars** — backed up to `stars.json`, but never replayed on the target.
+5. **Comment attachments** — issue-level attachments are migrated, but files attached to individual comments are not (`issue-migrator.mts`).
+6. **Wiki tags and wiki edit history.**
+7. **Read/unread status of notifications.** No mail notifications are sent during migration either (`mailNotify: false` throughout).
+
+**Reproduced, but transformed**
+
+8. **Statuses**: only the four built-in statuses (Open / In Progress / Resolved / Closed) are applied. Transitions to custom statuses recorded in the change log are skipped, and the final status sync is best-effort — if the target lacks that status ID the failure is silently ignored.
+9. **Issue keys are not preserved.** New issues receive fresh sequential keys; the original key is written into the metadata header of the description.
+10. **Author and timestamps become text.** Every issue and comment is created by the API key owner at migration time. The original creator, creation date and issue key appear as a `[元課題: ... | 登録者: ... | 登録日: ...]` header in the body.
+11. **Issue types, categories, versions and milestones are recreated by name** (case-insensitive, whitespace-trimmed match). Anything missing on the target is created automatically — including issue types that only existed historically, which you may want to delete afterwards. If issue type creation fails, issues fall back to the target's first issue type.
+12. **Unmatched users are reassigned.** If no user matches by email, name, or user ID, the issue is assigned to the API key owner. Use `user-mapping.json` to control this.
+13. **Priority and resolution IDs are copied verbatim** from the source, which assumes the target space uses the standard IDs.
+14. **Wiki attachments lose their original filenames.** They are stored and re-uploaded under their numeric attachment ID with no extension.
+15. **Parent/child links depend on ordering.** Issues are migrated in ascending ID order and the parent is resolved from already-migrated issues; if a parent failed to migrate, the child arrives without its parent link.
+
+**Operational constraints**
+
+16. **Migration into the same project is blocked** — the run aborts if source and target host and project key are identical.
+17. **A target project that already contains issues halts the run.** Set `ALLOW_EXISTING_ISSUES=true` in `.env` to proceed anyway.
+18. **Rate limits**: on HTTP 429 the tool pauses for 60 seconds and retries up to 5 times before aborting. On the free plan the tighter limits make long migrations impractical.
+19. **Do not run several migrations in parallel** against the same target space — the built-in throttling only accounts for a single running instance.
+20. **Wiki pages with the same name on the target are overwritten** — matching is by page name, and an existing page is updated in place rather than duplicated.
+21. **Wiki image tags referencing attachments by ID** (`#image(123)`) will not resolve after migrating to a different space.
 
 ---
 
