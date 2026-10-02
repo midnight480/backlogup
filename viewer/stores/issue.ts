@@ -28,7 +28,7 @@ export class IssueStore {
   }
 
   public clear() {
-    this.issue = {};
+    this.issue = {} as backlog.Entity.Issue.Issue;
     this.comments = [];
   }
 }

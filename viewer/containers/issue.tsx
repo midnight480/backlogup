@@ -12,6 +12,15 @@ import { NotificationUser } from "../components/notificationUser";
 import { UserHeader } from "../components/userHeader";
 import { useStore } from "../stores";
 
+// APIレスポンスの attachmentInfo には name が含まれるが、backlog-js の型定義には無いため補完する
+interface AttachmentInfoWithName {
+  id: number;
+  name?: string;
+}
+
+const attachmentInfoOf = (changeLog: { attachmentInfo?: unknown }): AttachmentInfoWithName | undefined =>
+  changeLog.attachmentInfo as AttachmentInfoWithName | undefined;
+
 const notificationType = (type: string) => {
   switch (type) {
     case "issue.create":
@@ -54,6 +63,7 @@ export const Issue: React.FC = observer((props) => {
   });
 
   const issue = issueStore.issue;
+  const parentIssue = issue.parentIssueId != null ? pageStore.issueById.get(issue.parentIssueId) : undefined;
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
@@ -171,6 +181,28 @@ export const Issue: React.FC = observer((props) => {
                     <th className="py-3 font-medium text-gray-500 w-1/3">カテゴリー</th>
                     <td className="py-3 text-gray-900">{issue.category?.map((c) => c.name).join(", ")}</td>
                   </tr>
+                  {(issue.parentIssueId != null || parentIssue) && (
+                    <tr className="border-b border-gray-200/60">
+                      <th className="py-3 font-medium text-gray-500 w-1/3">親課題</th>
+                      <td className="py-3 text-gray-900">
+                        {parentIssue ? (
+                          <Link to={`/issues/${parentIssue.id}`} className="text-blue-600 hover:text-blue-800 hover:underline">
+                            {parentIssue.issueKey} {parentIssue.summary}
+                          </Link>
+                        ) : (
+                          `ID: ${issue.parentIssueId}`
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                  {issue.childIssueSummary && issue.childIssueSummary.total > 0 && (
+                    <tr className="border-b border-gray-200/60">
+                      <th className="py-3 font-medium text-gray-500 w-1/3">子課題</th>
+                      <td className="py-3 text-gray-900">
+                        {issue.childIssueSummary.closed} / {issue.childIssueSummary.total} 完了
+                      </td>
+                    </tr>
+                  )}
                   {showMoreinfo && (
                     <>
                       <tr className="border-b border-gray-200/60">
@@ -409,10 +441,10 @@ export const Issue: React.FC = observer((props) => {
                                 <Bullet />
                                 添付ファイル: {changeLog.originalValue || "未設定"} <span className="mx-1 text-gray-400">➡️</span>{" "}
                                 <span className="font-medium text-gray-900">{changeLog.newValue || "削除"}</span>{" "}
-                                {changeLog.attachmentInfo && (
+                                {attachmentInfoOf(changeLog) && (
                                   <a
-                                    href={`/assets/issues/${issueId}/attachments/${changeLog.attachmentInfo.id}`}
-                                    download={changeLog.attachmentInfo?.name}
+                                    href={`/assets/issues/${issueId}/attachments/${attachmentInfoOf(changeLog)?.id}`}
+                                    download={attachmentInfoOf(changeLog)?.name}
                                     className="ml-2 text-blue-600 hover:text-blue-800 underline"
                                   >
                                     ダウンロード
@@ -470,7 +502,7 @@ export const Issue: React.FC = observer((props) => {
                           ?.replace(/!\[image\]\[(.*?)\]/g, (all, match1) => {
                             const targetAttachmentId = comment.changeLog
                               ?.slice()
-                              .find((attachment) => attachment.attachmentInfo?.name === match1)?.attachmentInfo.id;
+                              .find((attachment) => attachmentInfoOf(attachment)?.name === match1)?.attachmentInfo.id;
                             return `![image](/assets/issues/${issueId}/attachments/${targetAttachmentId})`;
                           })
                           .replaceAll("\n", "  \n")}

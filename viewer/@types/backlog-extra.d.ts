@@ -1,126 +1,29 @@
 /**
- * Backlog Document API 型定義
- * backlog-jsに未実装のDocument APIのレスポンス型を定義
+ * Backlog API 型定義
+ * backlog-js 0.20.x で Document API が正式サポートされたため Entity 型を流用する。
  */
+import type * as backlog from "backlog-js";
 
-interface BacklogDocumentAttachment {
-  id: number;
-  name: string;
-  size: number;
-  createdUser: {
+declare global {
+  type BacklogDocument = backlog.Entity.Document.Document;
+  type BacklogDocumentTag = backlog.Entity.Document.Tag;
+  type BacklogDocumentTree = backlog.Entity.Document.DocumentTree;
+  type BacklogDocumentTreeNode = backlog.Entity.Document.DocumentTreeNode;
+  type BacklogDocumentComment = backlog.Entity.Document.DocumentComment;
+  type BacklogDocumentCommentReply = backlog.Entity.Document.DocumentCommentReply;
+  type BacklogDocumentUser = backlog.Entity.User.User;
+  type BacklogDocumentAttachment = backlog.Entity.File.DocumentFileInfo;
+
+  /**
+   * 共有ファイル一覧 (shared-files/list.json) のエントリ。
+   * バックアップ時に scripts/backlog/index.mts が出力する簡易メタ情報。
+   */
+  interface BacklogSharedFile {
     id: number;
-    userId: string;
+    type: string;
+    dir: string;
     name: string;
-    roleType: number;
-    lang: string;
-    mailAddress: string;
-    nulabAccount?: {
-      nulabId: string;
-      name: string;
-      uniqueId: string;
-      iconUrl?: string;
-    } | null;
-    keyword?: string;
-    lastLoginTime?: string;
-  };
-  created: string;
-}
-
-interface BacklogDocumentTag {
-  id: number;
-  name: string;
-}
-
-/**
- * 共有ファイル一覧 (shared-files/list.json) のエントリ。
- * バックアップ時に scripts/backlog/index.mts が出力する。
- */
-interface BacklogSharedFile {
-  id: number;
-  type: string;
-  dir: string;
-  name: string;
-  size: number;
-  updated: string;
-}
-
-interface BacklogDocumentUser {
-  id: number;
-  userId: string;
-  name: string;
-  roleType: number;
-  lang: string | null;
-  mailAddress: string;
-  nulabAccount?: {
-    nulabId: string;
-    name: string;
-    uniqueId: string;
-    iconUrl?: string;
-  } | null;
-  keyword?: string;
-  lastLoginTime?: string;
-  icon?: string;
-}
-
-interface BacklogDocument {
-  id: string;
-  projectId: number;
-  title: string;
-  plain: string;
-  json: Record<string, unknown> | string | null;
-  statusId: number;
-  emoji: string | null;
-  attachments: BacklogDocumentAttachment[];
-  tags: BacklogDocumentTag[];
-  createdUser: BacklogDocumentUser;
-  created: string;
-  updatedUser: BacklogDocumentUser;
-  updated: string;
-}
-
-interface BacklogDocumentTreeNode {
-  id: string;
-  name: string;
-  children: BacklogDocumentTreeNode[];
-  emoji?: string;
-}
-
-interface BacklogDocumentTree {
-  projectId: number;
-  activeTree: {
-    id: string;
-    children: BacklogDocumentTreeNode[];
-  };
-  trashTree: {
-    id: string;
-    children: BacklogDocumentTreeNode[];
-  };
-}
-
-interface BacklogDocumentCommentReply {
-  id: string;
-  documentId: string;
-  commentId: string;
-  content: string;
-  plain: string;
-  createdUserId: number;
-  created: string;
-  updatedUserId: number;
-  updated: string;
-  createdUser: BacklogDocumentUser;
-}
-
-interface BacklogDocumentComment {
-  id: string;
-  documentId: string;
-  statusId: number;
-  content: string;
-  plain: string;
-  commentType: string;
-  createdUserId: number;
-  created: string;
-  updatedUserId: number;
-  updated: string;
-  createdUser: BacklogDocumentUser;
-  replies: BacklogDocumentCommentReply[];
+    size: number;
+    updated: string;
+  }
 }

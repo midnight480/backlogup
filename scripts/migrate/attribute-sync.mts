@@ -58,7 +58,7 @@ export async function syncAttributes(
       console.log(`[種別] 既存利用: '${st.name}' (ID: ${st.id} -> ${matched.id})`);
     } else {
       try {
-        const colorVal = (st.color || "#e30000") as backlogjs.Option.Issue.IssueTypeColor;
+        const colorVal = (st.color || "#e30000") as backlogjs.Types.IssueTypeColor;
         const created = (await withRetry(() =>
           targetBacklog.postIssueType(targetProjectId, {
             name: st.name,

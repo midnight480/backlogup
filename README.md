@@ -44,7 +44,7 @@ If you need a byte-faithful reproduction of a project's full history, use the of
 ### 1. Data Backup Feature (`npm run backup`)
 - **Full Local Storage**: Saves data from a specified Backlog project to your local environment as JSON and actual files.
 - **Backup Targets**:
-  - **Issues**: Issue details, status, priority, custom attributes, comments, attachments
+  - **Issues**: Issue details, status, priority, custom attributes, comments, attachments, parent/child relations (parent issue ID and the count of direct child issues, supporting the 3-level hierarchy including grandchild issues)
   - **Wiki**: Wiki page content, stars, attachments, tags
   - **Documents**: Folder/file tree structure, document content, comments (including replies), attachments
   - **Shared Files**: Recursively traverses the file-sharing area and builds a file list (`shared-files/list.json`). Because there can be many files, the actual files are **not** downloaded by `npm run backup`; instead they are fetched with the separate `npm run download:sharedfiles` command, individually or in bulk, with resumable downloads ([details](#downloading-shared-files)). Files are saved preserving the original folder structure and file names.
@@ -207,7 +207,7 @@ The list below is derived from the actual implementation under `scripts/migrate/
 12. **Unmatched users are reassigned.** If no user matches by email, name, or user ID, the issue is assigned to the API key owner. Use `user-mapping.json` to control this.
 13. **Priority and resolution IDs are copied verbatim** from the source, which assumes the target space uses the standard IDs.
 14. **Wiki attachments lose their original filenames.** They are stored and re-uploaded under their numeric attachment ID with no extension.
-15. **Parent/child links depend on ordering.** Issues are migrated in ascending ID order and the parent is resolved from already-migrated issues; if a parent failed to migrate, the child arrives without its parent link.
+15. **Parent/child issues are migrated parent-first.** Issues are sorted by hierarchy depth before creation, so children and grandchild issues (3-level hierarchy) are linked correctly even when a parent was originally created after its child. If the parent failed to migrate — or the target project does not allow grandchild issues — the child is registered without its parent link.
 
 **Operational constraints**
 

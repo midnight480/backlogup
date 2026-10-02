@@ -128,6 +128,11 @@ export class PageStore {
     return this.filteredPages;
   }
 
+  /** 課題IDから課題を引くためのマップ（親課題・子課題・孫課題の参照用） */
+  get issueById() {
+    return new Map(this.internalPages.map((issue) => [issue.id, issue]));
+  }
+
   get issuesLoaded() {
     return this.internalPages.length > 0;
   }

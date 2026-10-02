@@ -1,7 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type * as backlogjs from "backlog-js";
-import FormData from "isomorphic-form-data";
 
 interface WikiListItem {
   id: number;
@@ -83,9 +82,9 @@ export async function migrateWikis(
           const fileBuffer = await readFile(filePath);
 
           const form = new FormData();
-          form.append("file", fileBuffer, file);
+          form.append("file", new Blob([fileBuffer]), file);
 
-          const uploaded = (await withRetry(() => targetBacklog.postSpaceAttachment(form as unknown as FormData))) as unknown as {
+          const uploaded = (await withRetry(() => targetBacklog.postSpaceAttachment(form))) as unknown as {
             id: number;
           };
           attachmentIds.push(uploaded.id);
