@@ -1,7 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type * as backlogjs from "backlog-js";
-import FormData from "isomorphic-form-data";
 
 interface SourceIssueAttachment {
   id: number;
@@ -93,8 +92,25 @@ export async function migrateIssues(
     }
   }
 
-  issueItems.sort((a, b) => a.id - b.id);
-  console.log(`全 ${issueItems.length} 件の課題を古い順に移行します。`);
+  // 親課題→子課題→孫課題の順に作成できるよう、階層の深さでトポロジカルに並べ替える。
+  // ID 昇順だけでは「後から親に付け替えられた課題」や 3 階層の課題で
+  // 親がまだ移行されておらず親子リンクを張れない場合があるため。
+  const issueById = new Map(issueItems.map((item) => [item.id, item.issue]));
+  const depthCache = new Map<number, number>();
+  const depthOf = (issue: SourceIssue, seen: Set<number> = new Set()): number => {
+    const cached = depthCache.get(issue.id);
+    if (cached !== undefined) return cached;
+    const parent = issue.parentIssueId ? issueById.get(issue.parentIssueId) : undefined;
+    let depth = 0;
+    if (parent && !seen.has(issue.id)) {
+      seen.add(issue.id);
+      depth = Math.min(depthOf(parent, seen) + 1, 3);
+    }
+    depthCache.set(issue.id, depth);
+    return depth;
+  };
+  issueItems.sort((a, b) => depthOf(a.issue) - depthOf(b.issue) || a.id - b.id);
+  console.log(`全 ${issueItems.length} 件の課題を親→子→孫の順に移行します。`);
 
   const issueIdMap = new Map<number, number>(); // sourceIssueId -> targetIssueId
 
@@ -115,9 +131,9 @@ export async function migrateIssues(
         const filename = originalAtt ? originalAtt.name : attFile;
 
         const form = new FormData();
-        form.append("file", fileBuffer, filename);
+        form.append("file", new Blob([fileBuffer]), filename);
 
-        const uploaded = (await withRetry(() => targetBacklog.postSpaceAttachment(form as unknown as FormData))) as unknown as {
+        const uploaded = (await withRetry(() => targetBacklog.postSpaceAttachment(form))) as unknown as {
           id: number;
         };
         attachmentIds.push(uploaded.id);
@@ -143,6 +159,9 @@ export async function migrateIssues(
     const mappedMilestoneIds = oldIssue.milestone?.map((m) => versionMap.get(m.id)).filter((id): id is number => typeof id === "number");
 
     const parentIssueId = oldIssue.parentIssueId ? issueIdMap.get(oldIssue.parentIssueId) : undefined;
+    if (oldIssue.parentIssueId && parentIssueId === undefined) {
+      console.warn(`${issueLogPrefix} 親課題 (ID: ${oldIssue.parentIssueId}) が未移行のため、親子リンクなしで作成します。`);
+    }
 
     const postParams: Record<string, unknown> = {
       projectId: targetProjectId,
@@ -163,16 +182,29 @@ export async function migrateIssues(
       mailNotify: false,
     };
 
-    let newIssue: { id: number; issueKey: string } | null = null;
+    let newIssue: { id: number; issueKey: string };
     try {
       newIssue = (await withRetry(() => targetBacklog.postIssue(postParams as never))) as unknown as { id: number; issueKey: string };
-      issueIdMap.set(oldIssue.id, newIssue.id);
-      console.log(`${issueLogPrefix} 新課題作成成功: ${newIssue.issueKey} (ID: ${newIssue.id})`);
     } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.error(`${issueLogPrefix} 新課題作成失敗:`, errMsg);
-      continue;
+      // 移行先で孫課題が無効（grandchildIssueEnabled=false）な場合、3階層目の課題は
+      // 親指定での作成に失敗するため、親子リンクなしで再試行する。
+      if (parentIssueId === undefined) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        console.error(`${issueLogPrefix} 新課題作成失敗:`, errMsg);
+        continue;
+      }
+      try {
+        delete postParams.parentIssueId;
+        newIssue = (await withRetry(() => targetBacklog.postIssue(postParams as never))) as unknown as { id: number; issueKey: string };
+        console.warn(`${issueLogPrefix} 親課題指定での作成に失敗したため、親子リンクなしで作成しました。`);
+      } catch (retryErr) {
+        const errMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
+        console.error(`${issueLogPrefix} 新課題作成失敗:`, errMsg);
+        continue;
+      }
     }
+    issueIdMap.set(oldIssue.id, newIssue.id);
+    console.log(`${issueLogPrefix} 新課題作成成功: ${newIssue.issueKey} (ID: ${newIssue.id})`);
 
     // 4. コメントの移行
     const commentsPath = resolve(item.dirPath, "comments.json");
@@ -224,11 +256,13 @@ export async function migrateIssues(
 
     // 元の課題の状態が「完了」(4)などの場合、最終状態を同調
     if (oldIssue.status && oldIssue.status.id !== 1) {
+      const finalStatusId = oldIssue.status.id;
+      const finalResolutionId = oldIssue.resolution?.id || undefined;
       try {
         await withRetry(() =>
           targetBacklog.patchIssue(newIssue.id, {
-            statusId: oldIssue.status.id,
-            resolutionId: oldIssue.resolution?.id || undefined,
+            statusId: finalStatusId,
+            resolutionId: finalResolutionId,
             comment: "[移行補足] 最終ステータス同調",
           }),
         );

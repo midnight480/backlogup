@@ -91,7 +91,7 @@ function formatNotificationType(type: string): string {
   return type;
 }
 
-function formatChangeLogLine(changeLog: backlog.Entity.Issue.ChangeLog): string {
+function formatChangeLogLine(changeLog: backlog.Entity.ChangeLog.IssueChangeLog): string {
   const label = CHANGE_LOG_FIELD_LABELS[changeLog.field] ?? changeLog.field;
   if (changeLog.field === "notification") {
     const type = changeLog.notificationInfo?.type;

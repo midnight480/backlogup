@@ -1,10 +1,8 @@
-import "isomorphic-form-data";
-import "isomorphic-fetch";
+import { mkdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
+import { dirname, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import * as backlogjs from "backlog-js";
 import { config } from "dotenv";
-import { mkdir, readFile, rename, stat, unlink, writeFile } from "fs/promises";
-import { dirname, resolve, sep } from "path";
-import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -59,6 +57,11 @@ function pLimit(concurrency: number) {
 
 const limit = pLimit(5);
 const sleepAsync = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// backlog-js の FileData.body は Node 環境では ReadableStream なので Buffer に変換する
+async function fileDataToBuffer(fileData: backlogjs.Entity.File.FileData): Promise<Buffer> {
+  return Buffer.from(await new Response(fileData.body as ReadableStream).arrayBuffer());
+}
 
 let rateLimitResetTime = 0;
 
@@ -264,7 +267,7 @@ await Promise.all(
         // 最終パスへ残らないようにする（同一FS上の rename はアトミック）。
         const tempPath = `${targetPath}.part`;
         try {
-          await writeFile(tempPath, data.body, { encoding: "binary" });
+          await writeFile(tempPath, await fileDataToBuffer(data));
           await rename(tempPath, targetPath);
         } catch (e) {
           await unlink(tempPath).catch(() => {});

@@ -1,5 +1,3 @@
-import "isomorphic-form-data";
-import "isomorphic-fetch";
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -117,7 +115,7 @@ async function runMigration() {
   const myself = await withRetry(() => targetBacklog.getMyself());
   console.log(`移行先API実行ユーザー: ${myself.name} (ID: ${myself.id})`);
 
-  let targetProject: { id: number; name: string; projectKey: string } | null = null;
+  let targetProject: { id: number; name: string; projectKey: string };
   try {
     targetProject = (await withRetry(() => targetBacklog.getProject(targetProjectKey))) as { id: number; name: string; projectKey: string };
     console.log(`移行先プロジェクト確認: ${targetProject.name} (キー: ${targetProject.projectKey}, ID: ${targetProject.id})`);

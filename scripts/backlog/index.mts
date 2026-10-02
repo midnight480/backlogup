@@ -1,10 +1,8 @@
-import "isomorphic-form-data";
-import "isomorphic-fetch";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import * as backlogjs from "backlog-js";
 import { config } from "dotenv";
-import { mkdir, readFile, rm, writeFile } from "fs/promises";
-import { dirname, resolve } from "path";
-import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -111,16 +109,21 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-// Document API用ヘルパー（backlog-jsに未実装のため直接REST呼び出し）
+// backlog-js の FileData.body は Node 環境では ReadableStream なので Buffer に変換する
+async function fileDataToBuffer(fileData: backlogjs.Entity.File.FileData): Promise<Buffer> {
+  return Buffer.from(await new Response(fileData.body as ReadableStream).arrayBuffer());
+}
+
+// backlog-js に未実装のエンドポイント（ドキュメントコメントの取得）用の直接REST呼び出し。
+// apiKey はクエリではなく Backlog-API-Key ヘッダーで送る（URL・ログに残さないため）。
 const backlogApiBase = `https://${host}/api/v2`;
 async function fetchBacklogApi<T>(path: string, params: Record<string, string> = {}): Promise<T> {
   return withRetry(async () => {
     const url = new URL(`${backlogApiBase}${path}`);
-    url.searchParams.set("apiKey", apiKey!);
     for (const [key, value] of Object.entries(params)) {
       url.searchParams.set(key, value);
     }
-    const res = await fetch(url.toString());
+    const res = await fetch(url.toString(), { headers: { "Backlog-API-Key": apiKey! } });
     if (!res.ok) {
       const err: any = new Error(`Backlog API error: ${res.status} ${res.statusText} for ${path}`);
       err.status = res.status;
@@ -128,11 +131,6 @@ async function fetchBacklogApi<T>(path: string, params: Record<string, string> =
     }
     return res.json() as Promise<T>;
   });
-}
-
-// Sanitize URL for logging (strip apiKey)
-function sanitizeUrl(url: string): string {
-  return url.replace(/apiKey=[^&]+/, "apiKey=***");
 }
 
 // ========================================
@@ -154,8 +152,10 @@ try {
 try {
   const myself = await withRetry(() => backlog.getMyself());
   if (myself.roleType === 1) {
-    const diskUsage = await fetchBacklogApi<any>("/space/diskUsage");
-    await writeFile(resolve(distConfigs, "space-disk-usage.json"), JSON.stringify({ available: true, data: diskUsage }), { encoding: "utf-8" });
+    const diskUsage = await withRetry(() => backlog.getSpaceDiskUsage());
+    await writeFile(resolve(distConfigs, "space-disk-usage.json"), JSON.stringify({ available: true, data: diskUsage }), {
+      encoding: "utf-8",
+    });
   } else {
     await writeFile(resolve(distConfigs, "space-disk-usage.json"), JSON.stringify({ available: false }), { encoding: "utf-8" });
   }
@@ -165,7 +165,7 @@ try {
 
 if (project.useGit) {
   try {
-    const gitRepos = await fetchBacklogApi<any>(`/projects/${projectKey}/git/repositories`);
+    const gitRepos = await withRetry(() => backlog.getGitRepositories(projectKey));
     await writeFile(resolve(distConfigs, "git-repositories.json"), JSON.stringify(gitRepos), { encoding: "utf-8" });
   } catch (e) {
     console.warn("git repositories fetch failed", e);
@@ -196,7 +196,7 @@ await Promise.all(
       try {
         const userIcon = await withRetry(() => backlog.getUserIcon(user.id));
         const fileName = resolve(distUsers, `${user.id}`, "icon");
-        await writeFile(fileName, userIcon.body, { encoding: "binary" });
+        await writeFile(fileName, await fileDataToBuffer(userIcon));
       } catch (e) {
         console.warn("icon not found:", user.id, user.name);
       }
@@ -213,7 +213,10 @@ const { count: totalIssues } = await withRetry(() => backlog.getIssuesCount({ pr
 for (let fetched = 0, page = 0; fetched < totalIssues; page++) {
   await writeFile(resolve(distConfigs, "pages.json"), JSON.stringify({ start: 0, end: page }), { encoding: "utf-8" });
 
-  const issues = await withRetry(() => backlog.getIssues({ projectId: [projectId], count: 20, offset: fetched }));
+  // expand=childIssueSummary で直下の子課題の件数（total/closed）もバックアップ対象に含める
+  const issues = await withRetry(() =>
+    backlog.getIssues({ projectId: [projectId], count: 20, offset: fetched, expand: ["childIssueSummary"] }),
+  );
   fetched += issues.length;
 
   const fileName = resolve(distIssuePages, `${page}.json`);
@@ -259,7 +262,7 @@ for (let fetched = 0, page = 0; fetched < totalIssues; page++) {
         const attachments = await withRetry(() => backlog.getIssueAttachments(issue.id));
         for (const [attIndex, { id: attachmentId }] of attachments.entries()) {
           const attachment = await withRetry(() => backlog.getIssueAttachment(issue.id, attachmentId));
-          await writeFile(resolve(distIssueAttachments, `${attachmentId}`), attachment.body, { encoding: "binary" });
+          await writeFile(resolve(distIssueAttachments, `${attachmentId}`), await fileDataToBuffer(attachment));
         }
         console.log(`[Issue ${issue.issueKey}] 完了`);
       }),
@@ -276,64 +279,64 @@ if (project.useWiki === false) {
   console.log("Wiki機能が無効になっています。スキップします。");
 } else {
   try {
-  const wikiTags = await withRetry(() => backlog.getWikisTags(projectKey));
-  await writeFile(resolve(distConfigs, "wiki-tags.json"), JSON.stringify(wikiTags), { encoding: "utf-8" });
+    const wikiTags = await withRetry(() => backlog.getWikisTags(projectKey));
+    await writeFile(resolve(distConfigs, "wiki-tags.json"), JSON.stringify(wikiTags), { encoding: "utf-8" });
 
-  const wikis = await withRetry(() => backlog.getWikis({ projectIdOrKey: projectKey }));
-  await writeFile(resolve(distWikis, "list.json"), JSON.stringify(wikis), { encoding: "utf-8" });
+    const wikis = await withRetry(() => backlog.getWikis({ projectIdOrKey: projectKey }));
+    await writeFile(resolve(distWikis, "list.json"), JSON.stringify(wikis), { encoding: "utf-8" });
 
-  await Promise.all(
-    wikis.map((wikiListItem) =>
-      limit(async () => {
-        const wikiLogPrefix = `[Wiki ${wikiListItem.name}]`;
-        const distWiki = resolve(distWikis, `${wikiListItem.id}`);
-        const wikiJsonPath = resolve(distWiki, "wiki.json");
+    await Promise.all(
+      wikis.map((wikiListItem) =>
+        limit(async () => {
+          const wikiLogPrefix = `[Wiki ${wikiListItem.name}]`;
+          const distWiki = resolve(distWikis, `${wikiListItem.id}`);
+          const wikiJsonPath = resolve(distWiki, "wiki.json");
 
-        try {
-          const existingJson = await readFile(wikiJsonPath, { encoding: "utf-8" });
-          const existingWiki = JSON.parse(existingJson);
-          if (existingWiki.updated === wikiListItem.updated) {
-            console.log(`${wikiLogPrefix} 変更なし (スキップ)`);
-            return;
-          }
-        } catch (e) {}
+          try {
+            const existingJson = await readFile(wikiJsonPath, { encoding: "utf-8" });
+            const existingWiki = JSON.parse(existingJson);
+            if (existingWiki.updated === wikiListItem.updated) {
+              console.log(`${wikiLogPrefix} 変更なし (スキップ)`);
+              return;
+            }
+          } catch (e) {}
 
-        console.log(`${wikiLogPrefix} 取得開始...`);
+          console.log(`${wikiLogPrefix} 取得開始...`);
 
-        const wiki = await withRetry(() => backlog.getWiki(wikiListItem.id));
-        await mkdir(distWiki, { recursive: true });
+          const wiki = await withRetry(() => backlog.getWiki(wikiListItem.id));
+          await mkdir(distWiki, { recursive: true });
 
-        await writeFile(wikiJsonPath, JSON.stringify(wiki), { encoding: "utf-8" });
+          await writeFile(wikiJsonPath, JSON.stringify(wiki), { encoding: "utf-8" });
 
-        const stars = await withRetry(() => backlog.getWikisStars(wikiListItem.id));
-        await writeFile(resolve(distWiki, "stars.json"), JSON.stringify(stars), { encoding: "utf-8" });
+          const stars = await withRetry(() => backlog.getWikisStars(wikiListItem.id));
+          await writeFile(resolve(distWiki, "stars.json"), JSON.stringify(stars), { encoding: "utf-8" });
 
-        if (wiki.attachments && wiki.attachments.length > 0) {
-          const distWikiAttachments = resolve(distWiki, "attachments");
-          await mkdir(distWikiAttachments, { recursive: true });
+          if (wiki.attachments && wiki.attachments.length > 0) {
+            const distWikiAttachments = resolve(distWiki, "attachments");
+            await mkdir(distWikiAttachments, { recursive: true });
 
-          for (const [attIndex, attachment] of wiki.attachments.entries()) {
-            try {
-              const fileData = await withRetry(() => backlog.getWikiAttachment(wikiListItem.id, attachment.id));
-              await writeFile(resolve(distWikiAttachments, `${attachment.id}`), fileData.body, { encoding: "binary" });
-            } catch (e) {
-              console.warn(`${wikiLogPrefix} attachment download failed:`, attachment.id, attachment.name, e);
+            for (const [attIndex, attachment] of wiki.attachments.entries()) {
+              try {
+                const fileData = await withRetry(() => backlog.getWikiAttachment(wikiListItem.id, attachment.id));
+                await writeFile(resolve(distWikiAttachments, `${attachment.id}`), await fileDataToBuffer(fileData));
+              } catch (e) {
+                console.warn(`${wikiLogPrefix} attachment download failed:`, attachment.id, attachment.name, e);
+              }
             }
           }
-        }
-        console.log(`${wikiLogPrefix} 完了`);
-      }),
-    ),
-  );
-  console.log("--- Wiki バックアップ完了 ---");
-} catch (e: any) {
-  const status = e.response?.status || e.status || e._status || 0;
-  if (status === 403 || status === 404) {
-    console.log("Wiki機能が無効になっているか権限がないため、スキップします。");
-  } else {
-    console.error("Wikiバックアップ中にエラーが発生しました:", e.message || e);
+          console.log(`${wikiLogPrefix} 完了`);
+        }),
+      ),
+    );
+    console.log("--- Wiki バックアップ完了 ---");
+  } catch (e: any) {
+    const status = e.response?.status || e.status || e._status || 0;
+    if (status === 403 || status === 404) {
+      console.log("Wiki機能が無効になっているか権限がないため、スキップします。");
+    } else {
+      console.error("Wikiバックアップ中にエラーが発生しました:", e.message || e);
+    }
   }
-}
 }
 
 // ========================================
@@ -341,40 +344,17 @@ if (project.useWiki === false) {
 // ========================================
 
 console.log("--- ドキュメント バックアップ開始 ---");
-if (project.useDocument === false) {
-  console.log("ドキュメント機能が無効になっています。スキップします。");
-} else {
-
-interface DocumentListItem {
-  id: string;
-  projectId: number;
-  title: string;
-  plain: string;
-  json: string;
-  statusId: number;
-  emoji: string | null;
-  attachments: Array<{ id: number; name: string; size: number; createdUser: any; created: string }>;
-  tags: Array<{ id: number; name: string }>;
-  createdUser: any;
-  created: string;
-  updatedUser: any;
-  updated: string;
-}
 
 try {
-  const documentTree = await fetchBacklogApi<any>("/documents/tree", { projectIdOrKey: projectKey });
+  const documentTree = await withRetry(() => backlog.getDocumentTree(projectKey));
   await writeFile(resolve(distDocuments, "tree.json"), JSON.stringify(documentTree), { encoding: "utf-8" });
 
-  const allDocuments: DocumentListItem[] = [];
+  const allDocuments: backlogjs.Entity.Document.Document[] = [];
   let docOffset = 0;
   const docCount = 100;
 
   while (true) {
-    const docs = await fetchBacklogApi<DocumentListItem[]>("/documents", {
-      projectId: String(projectId),
-      count: String(docCount),
-      offset: String(docOffset),
-    });
+    const docs = await withRetry(() => backlog.getDocuments({ projectId: [projectId], count: docCount, offset: docOffset }));
     if (docs.length === 0) break;
     allDocuments.push(...docs);
     docOffset += docs.length;
@@ -404,11 +384,11 @@ try {
 
         await mkdir(distDoc, { recursive: true });
 
-        const documentDetail = await fetchBacklogApi<DocumentListItem>(`/documents/${doc.id}`);
+        const documentDetail = await withRetry(() => backlog.getDocument(doc.id));
         await writeFile(docJsonPath, JSON.stringify(documentDetail), { encoding: "utf-8" });
 
         try {
-          const comments = await fetchBacklogApi<any[]>(`/documents/${doc.id}/comments`);
+          const comments = await fetchBacklogApi<backlogjs.Entity.Document.DocumentComment[]>(`/documents/${doc.id}/comments`);
           await writeFile(resolve(distDoc, "comments.json"), JSON.stringify(comments), { encoding: "utf-8" });
         } catch (e) {
           console.warn(`${docLogPrefix} comments fetch failed:`, e);
@@ -440,21 +420,8 @@ try {
 
           for (const [attId, attName] of attachmentMap.entries()) {
             try {
-              const url = new URL(`${backlogApiBase}/documents/${doc.id}/attachments/${attId}`);
-              url.searchParams.set("apiKey", apiKey!);
-
-              const attRes = await withRetry(async () => {
-                const res = await fetch(url.toString());
-                if (!res.ok) {
-                  const err: any = new Error(`Backlog API error: ${res.status} for /documents/${doc.id}/attachments/${attId}`);
-                  err.status = res.status;
-                  throw err;
-                }
-                return res;
-              });
-
-              const buffer = await attRes.arrayBuffer();
-              await writeFile(resolve(distDocAttachments, `${attId}`), Buffer.from(buffer));
+              const fileData = await withRetry(() => backlog.downloadDocumentAttachment(doc.id, attId));
+              await writeFile(resolve(distDocAttachments, `${attId}`), await fileDataToBuffer(fileData));
             } catch (e) {
               console.warn(`${docLogPrefix} attachment download failed:`, attId, attName, e);
             }
@@ -474,7 +441,6 @@ try {
     console.error("ドキュメントバックアップ中にエラーが発生しました:", e.message || e);
   }
 }
-}
 
 // ========================================
 // 共有ファイル 一覧取得
@@ -488,63 +454,62 @@ console.log("--- 共有ファイル 一覧取得開始 ---");
 if (project.useFileSharing === false) {
   console.log("ファイル共有機能が無効になっています。スキップします。");
 } else {
+  interface SharedFileMeta {
+    id: number;
+    type: string;
+    dir: string;
+    name: string;
+    size: number;
+    updated: string;
+  }
 
-interface SharedFileMeta {
-  id: number;
-  type: string;
-  dir: string;
-  name: string;
-  size: number;
-  updated: string;
-}
+  try {
+    const allSharedFiles: SharedFileMeta[] = [];
 
-try {
-  const allSharedFiles: SharedFileMeta[] = [];
+    // ディレクトリツリーを再帰的に走査して、ファイルのメタデータを集める。
+    // path はAPIに渡す相対パス（ルートは ""）。
+    async function walkSharedFiles(path: string): Promise<void> {
+      const count = 100;
+      for (let offset = 0; ; ) {
+        const items = await withRetry(() => backlog.getSharedFiles(projectKey!, path, { count, offset }));
+        if (items.length === 0) break;
 
-  // ディレクトリツリーを再帰的に走査して、ファイルのメタデータを集める。
-  // path はAPIに渡す相対パス（ルートは ""）。
-  async function walkSharedFiles(path: string): Promise<void> {
-    const count = 100;
-    for (let offset = 0; ; ) {
-      const items = await withRetry(() => backlog.getSharedFiles(projectKey!, path, { count, offset }));
-      if (items.length === 0) break;
+        for (const item of items) {
+          const isDir = item.type === "directory" || item.type === "dir";
+          // item.dir は親ディレクトリ("/" や "/設計書/")、item.name はその名前。
+          // 余分なスラッシュを畳んで先頭スラッシュを除いた相対パスにする。
+          const rel = `${item.dir}/${item.name}`.replace(/\/+/g, "/").replace(/^\//, "");
 
-      for (const item of items) {
-        const isDir = item.type === "directory" || item.type === "dir";
-        // item.dir は親ディレクトリ("/" や "/設計書/")、item.name はその名前。
-        // 余分なスラッシュを畳んで先頭スラッシュを除いた相対パスにする。
-        const rel = `${item.dir}/${item.name}`.replace(/\/+/g, "/").replace(/^\//, "");
-
-        if (isDir) {
-          await walkSharedFiles(rel);
-        } else {
-          allSharedFiles.push({
-            id: item.id,
-            type: item.type,
-            dir: item.dir,
-            name: item.name,
-            size: item.size,
-            updated: item.updated,
-          });
+          if (isDir) {
+            await walkSharedFiles(rel);
+          } else {
+            allSharedFiles.push({
+              id: item.id,
+              type: item.type,
+              dir: item.dir,
+              name: item.name,
+              size: item.size,
+              updated: item.updated,
+            });
+          }
         }
-      }
 
-      offset += items.length;
-      if (items.length < count) break;
+        offset += items.length;
+        if (items.length < count) break;
+      }
+    }
+
+    await walkSharedFiles("");
+
+    await writeFile(resolve(distSharedFiles, "list.json"), JSON.stringify(allSharedFiles), { encoding: "utf-8" });
+    console.log(`--- 共有ファイル 一覧取得完了 (${allSharedFiles.length} 件) ---`);
+    console.log("実ファイルのダウンロードは 'npm run download:sharedfiles' で実行してください。");
+  } catch (e: any) {
+    const status = e.response?.status || e.status || e._status || 0;
+    if (status === 403 || status === 404) {
+      console.log("ファイル共有機能が無効になっているか権限がないため、スキップします。");
+    } else {
+      console.error("共有ファイル一覧取得中にエラーが発生しました:", e.message || e);
     }
   }
-
-  await walkSharedFiles("");
-
-  await writeFile(resolve(distSharedFiles, "list.json"), JSON.stringify(allSharedFiles), { encoding: "utf-8" });
-  console.log(`--- 共有ファイル 一覧取得完了 (${allSharedFiles.length} 件) ---`);
-  console.log("実ファイルのダウンロードは 'npm run download:sharedfiles' で実行してください。");
-} catch (e: any) {
-  const status = e.response?.status || e.status || e._status || 0;
-  if (status === 403 || status === 404) {
-    console.log("ファイル共有機能が無効になっているか権限がないため、スキップします。");
-  } else {
-    console.error("共有ファイル一覧取得中にエラーが発生しました:", e.message || e);
-  }
-}
 }
