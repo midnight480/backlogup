@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import * as backlogjs from "backlog-js";
 import { config } from "dotenv";
 import { syncAttributes } from "./attribute-sync.mts";
+import { migrateDocuments } from "./document-migrator.mts";
 import { migrateIssues } from "./issue-migrator.mts";
 import { matchUsers } from "./user-matcher.mts";
 import { migrateWikis } from "./wiki-migrator.mts";
@@ -14,6 +15,7 @@ const dist = resolve(__dirname, "..", "backlog", "dist", "assets");
 const distConfigs = resolve(dist, "configs");
 const distIssues = resolve(dist, "issues");
 const distWikis = resolve(dist, "wikis");
+const distDocuments = resolve(dist, "documents");
 
 config({ override: true });
 
@@ -183,6 +185,9 @@ async function runMigration() {
 
   // 7. 課題およびコメント・添付ファイルの移行
   await migrateIssues(targetBacklog, targetProject.id, distIssues, userMap, typeMap, categoryMap, versionMap, myself.id, withRetry, limit);
+
+  // 8. ドキュメントの移行（タイトル・絵文字・本文・ツリー構造・タグ）
+  await migrateDocuments(targetBacklog, targetProject.id, distDocuments, targetHost!, targetApiKey!, withRetry);
 
   console.log("\n========================================");
   console.log(" 🎉 Backlog データの移行が完了しました！ ");
