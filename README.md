@@ -46,7 +46,7 @@ If you need a byte-faithful reproduction of a project's full history, use the of
 - **Backup Targets**:
   - **Issues**: Issue details, status, priority, custom attributes, comments, attachments, parent/child relations (parent issue ID and the count of direct child issues, supporting the 3-level hierarchy including grandchild issues)
   - **Wiki**: Wiki page content, stars, attachments, tags
-  - **Documents**: Folder/file tree structure, document content, comments (including replies), attachments
+  - **Documents**: Folder/file tree structure, document content, comments (including replies), attachments, tags
   - **Shared Files**: Recursively traverses the file-sharing area and builds a file list (`shared-files/list.json`). Because there can be many files, the actual files are **not** downloaded by `npm run backup`; instead they are fetched with the separate `npm run download:sharedfiles` command, individually or in bulk, with resumable downloads ([details](#downloading-shared-files)). Files are saved preserving the original folder structure and file names.
   - **Project Settings**: Issue types, categories, milestones, member list, **License Info** (plan type, user limits, storage capacity, etc.)
   - **User Information**: User metadata, profile icons
@@ -79,7 +79,7 @@ Migrate/import backed-up data (issues, wiki pages, attachments, settings) to ano
 - **Automatic User Mapping**: Matches source users to target space users by exact email match and name/ID matching. Manual override via `user-mapping.json` is also supported.
 - **Attribute Synchronization**: Automatically extracts target issue types, categories, and milestones (creates missing ones automatically).
 - **Sequential Issue & Wiki Reproduction**: Re-creates issues, comments, and attachments in chronological order. Adds metadata headers (original creator, creation date, original issue key) to descriptions and comments.
-- **Scope**: Issues and wikis only. Documents and shared files are backed up but **not** migrated — see [Migration Limitations](#migration-limitations).
+- **Scope**: Issues, wikis, and documents are migrated. For documents, only the title, emoji, text content, tree structure, and tags are carried over — formatting, attachments, and comments are out of scope. Shared files are backed up but **not** migrated — see [Migration Limitations](#migration-limitations).
 
 ---
 
@@ -190,7 +190,7 @@ The list below is derived from the actual implementation under `scripts/migrate/
 
 **Not migrated at all**
 
-1. **Documents** — `npm run backup` archives them, but `npm run migrate` only processes issues and wikis (`scripts/migrate/index.mts`).
+1. **Document comments, attachments, and edit history** — the document add API now lets us migrate the body (title, emoji, content, tree structure, tags), but no API exists to post comments on a document or to attach files to one, so those are not migrated (`document-migrator.mts`).
 2. **Shared files, Git and Subversion repositories.**
 3. **Custom fields (custom attributes)** — no custom field values are read or posted. Issues arrive with custom fields empty.
 4. **Stars** — backed up to `stars.json`, but never replayed on the target.
@@ -208,15 +208,16 @@ The list below is derived from the actual implementation under `scripts/migrate/
 13. **Priority and resolution IDs are copied verbatim** from the source, which assumes the target space uses the standard IDs.
 14. **Wiki attachments lose their original filenames.** They are stored and re-uploaded under their numeric attachment ID with no extension.
 15. **Parent/child issues are migrated parent-first.** Issues are sorted by hierarchy depth before creation, so children and grandchild issues (3-level hierarchy) are linked correctly even when a parent was originally created after its child. If the parent failed to migrate — or the target project does not allow grandchild issues — the child is registered without its parent link.
+16. **Document bodies are migrated as text only.** Backups keep both the ProseMirror JSON and plain text, but the document add API accepts only Markdown text, so formatting (headings, tables, embedded images, etc.) is not reproduced and the `plain` text is migrated instead. The tree's parent/child relations and ordering are preserved. The original creator and last-updated date are recorded in a `[元ドキュメント ...]` header at the top of the body.
 
 **Operational constraints**
 
-16. **Migration into the same project is blocked** — the run aborts if source and target host and project key are identical.
-17. **A target project that already contains issues halts the run.** Set `ALLOW_EXISTING_ISSUES=true` in `.env` to proceed anyway.
-18. **Rate limits**: on HTTP 429 the tool pauses for 60 seconds and retries up to 5 times before aborting. On the free plan the tighter limits make long migrations impractical.
-19. **Do not run several migrations in parallel** against the same target space — the built-in throttling only accounts for a single running instance.
-20. **Wiki pages with the same name on the target are overwritten** — matching is by page name, and an existing page is updated in place rather than duplicated.
-21. **Wiki image tags referencing attachments by ID** (`#image(123)`) will not resolve after migrating to a different space.
+17. **Migration into the same project is blocked** — the run aborts if source and target host and project key are identical.
+18. **A target project that already contains issues halts the run.** Set `ALLOW_EXISTING_ISSUES=true` in `.env` to proceed anyway.
+19. **Rate limits**: on HTTP 429 the tool pauses for 60 seconds and retries up to 5 times before aborting. On the free plan the tighter limits make long migrations impractical.
+20. **Do not run several migrations in parallel** against the same target space — the built-in throttling only accounts for a single running instance.
+21. **Wiki pages with the same name on the target are overwritten** — matching is by page name, and an existing page is updated in place rather than duplicated.
+22. **Wiki image tags referencing attachments by ID** (`#image(123)`) will not resolve after migrating to a different space.
 
 ---
 
